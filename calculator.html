@@ -5,25 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
 <!-- Primary Meta Tags -->
-<title>🇵🇱 Poland | Seat Calculator</title>
-<meta name="title" content="🇵🇱 Poland | Seat Calculator">
+<title>🇪🇸 Spain | Seat Calculator</title>
+<meta name="title" content="🇪🇸 Spain | Seat Calculator">
 <meta name="description" content="">
 
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://nowcast-eu.github.io/Poland/calculator.html">
-<meta property="og:title" content="🇵🇱 Poland | Seat Calculator">
+<meta property="og:url" content="https://nowcast-eu.github.io/Spain/calculator.html">
+<meta property="og:title" content="🇪🇸 Spain | Seat Calculator">
 <meta property="og:description" content="">
-<meta property="og:image" content="https://nowcast-eu.github.io/Poland/thumbnail.png">
+<meta property="og:image" content="https://nowcast-eu.github.io/Spain/thumbnail.png">
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary">
-<meta name="twitter:url" content="https://nowcast-eu.github.io/Poland/calculator.html">
-<meta name="twitter:title" content="🇵🇱 Poland | Seat Calculator">
+<meta name="twitter:url" content="https://nowcast-eu.github.io/Spain/calculator.html">
+<meta name="twitter:title" content="🇪🇸 Spain | Seat Calculator">
 <meta name="twitter:description" content="">
-<meta name="twitter:image" content="https://nowcast-eu.github.io/Poland/thumbnail.png">
+<meta name="twitter:image" content="https://nowcast-eu.github.io/Spain/thumbnail.png">
 
-<link rel="icon" type="image/png" href="https://nowcast-eu.github.io/Poland/favicon.png">
+<link rel="icon" type="image/png" href="https://nowcast-eu.github.io/Spain/favicon.png">
 
 <style>
   body {
@@ -300,101 +300,123 @@ tfoot td {
   <div class="legend" id="legend"></div>
   <div class="bar-container" id="bar">
     <div class="coalition-overlay" id="coalition-overlay"></div>
-    <div class="majority-line" title="Majority (231 seats)"></div>
+    <div class="majority-line" title="Majority (176 seats)"></div>
   </div>
-  <div class="counter" id="counter">0 / 460</div>
-  <div class="note">Majority = 231 seats</div>
+  <div class="counter" id="counter">0 / 350</div>
+  <div class="note">Majority = 176 seats</div>
 </div>
 
 <script>
 const BASELINE = {"baseline_national": {"PP": 0.32, "PSOE": 0.2761, "Vox": 0.1797, "Sumar": 0.0606, "Podem": 0.0460, "SALF": 0.0145, "ERC": 0.0178, "JxCat": 0.0151, "EhB": 0.0133, "PNV": 0.0121, "BNG": 0.0087, "Cca": 0.0040, "UPN": 0.0018},
     
- "constituencies": [{"name": "1 – Legnica", "PP": 0.172033898, "PSOE": 0.170550489, "Vox": 0.097048611, "Sumar": 0.089583333, "Podem": 0.117635447, "AWA": 0.0, "SALF": 0.097844399, "ERC": 0.079125, "OTH": 0.050842105, "JxCat": 0.070333333},                    
- {"name": "2 – Wałbrzych", "PP": 0.164816384, "PSOE": 0.187666124, "Vox": 0.109506944, "Sumar": 0.101083333, "Podem": 0.102792331, "AWA": 0.0, "SALF": 0.085574741, "ERC": 0.07525, "OTH": 0.035473684, "JxCat": 0.066888889},                    
-{"name": "3 – Wrocław", "PP": 0.131793785, "PSOE": 0.186504886, "Vox": 0.124041667, "Sumar": 0.1145, "Podem": 0.146731136, "AWA": 0.0, "SALF": 0.151524905, "ERC": 0.08725, "OTH": 0.045578947, "JxCat": 0.077555556}, 
-{"name": "4 – Bydgoszcz", "PP": 0.150529661, "PSOE": 0.176760586, "Vox": 0.135958333, "Sumar": 0.1255, "Podem": 0.127634971, "AWA": 0.0, "SALF": 0.105562597, "ERC": 0.08025, "OTH": 0.033052632, "JxCat": 0.071333333}, 
-{"name": "5 – Toruń", "PP": 0.168375706, "PSOE": 0.149042345, "Vox": 0.141555556, "Sumar": 0.130666667, "Podem": 0.139063904, "AWA": 0.0, "SALF": 0.113266393, "ERC": 0.079625, "OTH": 0.032736842, "JxCat": 0.070777778}, 
-{"name": "6 – Lublin", "PP": 0.224830508, "PSOE": 0.102592834, "Vox": 0.143270833, "Sumar": 0.13225, "Podem": 0.075185868, "AWA": 0.0, "SALF": 0.078668228, "ERC": 0.10475, "OTH": 0.044736842, "JxCat": 0.093111111}, 
-{"name": "7 – Chełm", "PP": 0.250882768, "PSOE": 0.087850163, "Vox": 0.117722222, "Sumar": 0.108666667, "Podem": 0.071171162, "AWA": 0.0, "SALF": 0.06308123, "ERC": 0.097375, "OTH": 0.056736842, "JxCat": 0.086555556}, 
-{"name": "8 – Zielona Góra", "PP": 0.137231638, "PSOE": 0.190493485, "Vox": 0.136048611, "Sumar": 0.125583333, "Podem": 0.115543373, "AWA": 0.0, "SALF": 0.098864553, "ERC": 0.081375, "OTH": 0.038421053, "JxCat": 0.072333333}, 
-{"name": "9 – Łódź", "PP": 0.132584746, "PSOE": 0.207356678, "Vox": 0.107340278, "Sumar": 0.099083333, "Podem": 0.159214017, "AWA": 0.0, "SALF": 0.140778706, "ERC": 0.069625, "OTH": 0.025578947, "JxCat": 0.061888889}, 
-{"name": "10 – Piotrków Trybunalski", "PP": 0.230367232, "PSOE": 0.109509772, "Vox": 0.123951389, "Sumar": 0.114416667, "Podem": 0.084585458, "AWA": 0.0, "SALF": 0.076190152, "ERC": 0.09525, "OTH": 0.041894737, "JxCat": 0.084666667},                     
-{"name": "11 – Sieradz", "PP": 0.204957627, "PSOE": 0.130714984, "Vox": 0.130902778, "Sumar": 0.120833333, "Podem": 0.102837047, "AWA": 0.0, "SALF": 0.088003758, "ERC": 0.08525, "OTH": 0.037789474, "JxCat": 0.075777778}, 
-{"name": "12 – Kraków I", "PP": 0.211878531, "PSOE": 0.122384365, "Vox": 0.135145833, "Sumar": 0.12475, "Podem": 0.078725841, "AWA": 0.0, "SALF": 0.079185256, "ERC": 0.0985, "OTH": 0.042105263, "JxCat": 0.087555556}, 
-{"name": "13 – Kraków II", "PP": 0.151666667, "PSOE": 0.155151466, "Vox": 0.152208333, "Sumar": 0.1405, "Podem": 0.141819683, "AWA": 0.0, "SALF": 0.159393345, "ERC": 0.096375, "OTH": 0.031368421, "JxCat": 0.085666667}, 
-{"name": "14 – Nowy Sącz", "PP": 0.265614407, "PSOE": 0.081286645, "Vox": 0.104541667, "Sumar": 0.0965, "Podem": 0.041877269, "AWA": 0.0, "SALF": 0.049533629, "ERC": 0.109125, "OTH": 0.070210526, "JxCat": 0.097}, 
-{"name": "15 – Tarnów", "PP": 0.240600282, "PSOE": 0.085931596, "Vox": 0.168277778, "Sumar": 0.155333333, "Podem": 0.055187991, "AWA": 0.0, "SALF": 0.065275242, "ERC": 0.099875, "OTH": 0.038736842, "JxCat": 0.088777778}, 
-{"name": "16 – Płock", "PP": 0.21805791, "PSOE": 0.113094463, "Vox": 0.154104167, "Sumar": 0.14225, "Podem": 0.086038763, "AWA": 0.0, "SALF": 0.074370255, "ERC": 0.0815, "OTH": 0.035578947, "JxCat": 0.072444444}, 
-{"name": "17 – Radom", "PP": 0.240649718, "PSOE": 0.105824104, "Vox": 0.126208333, "Sumar": 0.1165, "Podem": 0.075317986, "AWA": 0.0, "SALF": 0.073814891, "ERC": 0.091375, "OTH": 0.039368421, "JxCat": 0.081222222}, 
-{"name": "18 – Siedlce", "PP": 0.240353107, "PSOE": 0.094464169, "Vox": 0.140020833, "Sumar": 0.12925, "Podem": 0.065091144, "AWA": 0.0, "SALF": 0.064113314, "ERC": 0.102625, "OTH": 0.043263158, "JxCat": 0.091222222}, 
-{"name": "19 – Warsaw I", "PP": 0.099562147, "PSOE": 0.218262215, "Vox": 0.119618056, "Sumar": 0.110416667, "Podem": 0.180314213, "AWA": 0.0, "SALF": 0.172383327, "ERC": 0.078, "OTH": 0.028315789, "JxCat": 0.069333333}, 
-{"name": "20 – Warsaw II", "PP": 0.15690678, "PSOE": 0.177871336, "Vox": 0.135958333, "Sumar": 0.1255, "Podem": 0.098212987, "AWA": 0.0, "SALF": 0.095142985, "ERC": 0.08825, "OTH": 0.040631579, "JxCat": 0.078444444},                    
-{"name": "21 – Opole", "PP": 0.154533898, "PSOE": 0.169591205, "Vox": 0.115013889, "Sumar": 0.106166667, "Podem": 0.093942105, "AWA": 0.0, "SALF": 0.087394635, "ERC": 0.081125, "OTH": 0.091368421, "JxCat": 0.072111111}, 
-{"name": "22 – Krosno", "PP": 0.270409605, "PSOE": 0.08002443, "Vox": 0.124493056, "Sumar": 0.114916667, "Podem": 0.05743997, "AWA": 0.0, "SALF": 0.054877637, "ERC": 0.10775, "OTH": 0.027052632, "JxCat": 0.095777778}, 
-{"name": "23 – Rzeszów", "PP": 0.255084746, "PSOE": 0.089364821, "Vox": 0.112125, "Sumar": 0.1035, "Podem": 0.062484287, "AWA": 0.0, "SALF": 0.065885816, "ERC": 0.1185, "OTH": 0.041368421, "JxCat": 0.105333333}, 
-{"name": "24 – Białystok", "PP": 0.209555085, "PSOE": 0.105218241, "Vox": 0.170263889, "Sumar": 0.157166667, "Podem": 0.066561293, "AWA": 0.0, "SALF": 0.068427361, "ERC": 0.122375, "OTH": 0.034421053, "JxCat": 0.108777778}, 
-{"name": "25 – Gdańsk", "PP": 0.124576271, "PSOE": 0.210537459, "Vox": 0.132708333, "Sumar": 0.1225, "Podem": 0.127055523, "AWA": 0.0, "SALF": 0.132600423, "ERC": 0.077875, "OTH": 0.029052632, "JxCat": 0.069222222}, 
-{"name": "26 – Słupsk", "PP": 0.144548023, "PSOE": 0.19140228, "Vox": 0.1226875, "Sumar": 0.11325, "Podem": 0.109515962, "AWA": 0.0, "SALF": 0.101822374, "ERC": 0.090125, "OTH": 0.039157895, "JxCat": 0.080111111}, 
-{"name": "27 – Bielsko-Biała I", "PP": 0.181475989, "PSOE": 0.144750814, "Vox": 0.131354167, "Sumar": 0.12125, "Podem": 0.097642427, "AWA": 0.0, "SALF": 0.091910625, "ERC": 0.098, "OTH": 0.047052632, "JxCat": 0.087111111}, 
-{"name": "28 – Częstochowa", "PP": 0.179696328, "PSOE": 0.146972313, "Vox": 0.132888889, "Sumar": 0.122666667, "Podem": 0.116959966, "AWA": 0.0, "SALF": 0.101000901, "ERC": 0.082, "OTH": 0.040315789, "JxCat": 0.072888889}, 
-{"name": "29 – Katowice I", "PP": 0.149096045, "PSOE": 0.182061889, "Vox": 0.120430556, "Sumar": 0.111166667, "Podem": 0.118989226, "AWA": 0.0, "SALF": 0.111628861, "ERC": 0.086875, "OTH": 0.045052632, "JxCat": 0.077222222}, 
-{"name": "30 – Bielsko-Biała II", "PP": 0.188149718, "PSOE": 0.151364821, "Vox": 0.112395833, "Sumar": 0.10375, "Podem": 0.090401541, "AWA": 0.0, "SALF": 0.085871865, "ERC": 0.1, "OTH": 0.049157895, "JxCat": 0.088888889},
-                    
-{"name": "31 – Katowice II", "PP": 0.152655367, "PSOE": 0.185747557, "Vox": 0.119798611, "Sumar": 0.110583333, "Podem": 0.115130728, "AWA": 0.0, "SALF": 0.115182071, "ERC": 0.08375, "OTH": 0.041052632, "JxCat": 0.074444444}, 
-{"name": "32 – Katowice III", "PP": 0.147019774, "PSOE": 0.152980456, "Vox": 0.088923611, "Sumar": 0.082083333, "Podem": 0.245079896, "AWA": 0.0, "SALF": 0.180162757, "ERC": 0.071125, "OTH": 0.029684211, "JxCat": 0.063222222}, 
-{"name": "33 – Kielce", "PP": 0.232690678, "PSOE": 0.105672638, "Vox": 0.124583333, "Sumar": 0.115, "Podem": 0.086776523, "AWA": 0.0, "SALF": 0.076817302, "ERC": 0.081875, "OTH": 0.050631579, "JxCat": 0.072777778}, 
-{"name": "34 – Elbląg", "PP": 0.174011299, "PSOE": 0.160907166, "Vox": 0.139027778, "Sumar": 0.128333333, "Podem": 0.106063675, "AWA": 0.0, "SALF": 0.087230444, "ERC": 0.08175, "OTH": 0.030421053, "JxCat": 0.072666667}, 
-{"name": "35 – Olsztyn", "PP": 0.159823446, "PSOE": 0.166965798, "Vox": 0.1454375, "Sumar": 0.13425, "Podem": 0.107742744, "AWA": 0.0, "SALF": 0.095348937, "ERC": 0.086625, "OTH": 0.036421053, "JxCat": 0.077}, 
-{"name": "36 – Kalisz", "PP": 0.177224576, "PSOE": 0.145659609, "Vox": 0.145888889, "Sumar": 0.134666667, "Podem": 0.110165624, "AWA": 0.0, "SALF": 0.094682389, "ERC": 0.08725, "OTH": 0.041157895, "JxCat": 0.077555556}, 
-{"name": "37 – Konin", "PP": 0.191264124, "PSOE": 0.12112215, "Vox": 0.150131944, "Sumar": 0.138583333, "Podem": 0.12076544, "AWA": 0.0, "SALF": 0.09997231, "ERC": 0.087125, "OTH": 0.044631579, "JxCat": 0.077444444}, 
-{"name": "38 – Piła", "PP": 0.143905367, "PSOE": 0.176053746, "Vox": 0.159430556, "Sumar": 0.147166667, "Podem": 0.106070519, "AWA": 0.0, "SALF": 0.092096721, "ERC": 0.085875, "OTH": 0.038421053, "JxCat": 0.076333333}, 
-{"name": "39 – Poznań", "PP": 0.09674435, "PSOE": 0.222604235, "Vox": 0.149319444, "Sumar": 0.137833333, "Podem": 0.161737228, "AWA": 0.0, "SALF": 0.16780546, "ERC": 0.07375, "OTH": 0.016736842, "JxCat": 0.065555556}, 
-{"name": "40 – Koszalin", "PP": 0.155028249, "PSOE": 0.195340391, "Vox": 0.111493056, "Sumar": 0.102916667, "Podem": 0.11424915, "AWA": 0.0, "SALF": 0.087450052, "ERC": 0.07525, "OTH": 0.030210526, "JxCat": 0.066888889}, 
-{"name": "41 – Szczecin", "PP": 0.142323446, "PSOE": 0.202610749, "Vox": 0.113930556, "Sumar": 0.105166667, "Podem": 0.120915947, "AWA": 0.0, "SALF": 0.108637695, "ERC": 0.07425, "OTH": 0.032947368, "JxCat": 0.066}]};
+ "constituencies": [{"name": "A Coruña", "PP": 0.4167, "PSOE": 0.2456, "Vox": 0.0725, "Sumar": 0.0601, "Podem": 0.0394, "SALF": 0.0062, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.1452, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Álava", "PP": 0.1721, "PSOE": 0.2412, "Vox": 0.0565, "Sumar": 0.0626, "Podem": 0.0520, "SALF": 0.0067, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.1853, "PNV": 0.1821, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Albacete", "PP": 0.3867, "PSOE": 0.3005, "Vox": 0.2421, "Sumar": 0.0350, "Podem": 0.0312, "SALF": 0.0183, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Alicante", "PP": 0.3558, "PSOE": 0.2787, "Vox": 0.2363, "Sumar": 0.0631, "Podem": 0.0424, "SALF": 0.0190, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Almería", "PP": 0.3964, "PSOE": 0.2526, "Vox": 0.3102, "Sumar": 0.0325, "Podem": 0.0261, "SALF": 0.0227, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Asturias", "PP": 0.3442, "PSOE": 0.2996, "Vox": 0.1812, "Sumar": 0.0735, "Podem": 0.0550, "SALF": 0.0113, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Ávila", "PP": 0.4196, "PSOE": 0.2378, "Vox": 0.2232, "Sumar": 0.0251, "Podem": 0.0244, "SALF": 0.0142, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Badajoz", "PP": 0.3664, "PSOE": 0.3414, "Vox": 0.1986, "Sumar": 0.0335, "Podem": 0.0292, "SALF": 0.0123, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Balearic Islands", "PP": 0.3442, "PSOE": 0.2621, "Vox": 0.2203, "Sumar": 0.0818, "Podem": 0.0553, "SALF": 0.0169, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Barcelona", "PP": 0.1324, "PSOE": 0.3109, "Vox": 0.1102, "Sumar": 0.0749, "Podem": 0.0621, "SALF": 0.0088, "ERC": 0.1149, "JxCat": 0.0918, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Biscay", "PP": 0.1112, "PSOE": 0.2247, "Vox": 0.0377, "Sumar": 0.0537, "Podem": 0.0465, "SALF": 0.0052, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.1967, "PNV": 0.2962, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Burgos", "PP": 0.3935, "PSOE": 0.3005, "Vox": 0.1855, "Sumar": 0.0424, "Podem": 0.0360, "SALF": 0.0131, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Cáceres", "PP": 0.3683, "PSOE": 0.3388, "Vox": 0.1971, "Sumar": 0.0340, "Podem": 0.0313, "SALF": 0.0113, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Cádiz", "PP": 0.3364, "PSOE": 0.2891, "Vox": 0.2203, "Sumar": 0.0631, "Podem": 0.0468, "SALF": 0.0200, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Cantabria", "PP": 0.4070, "PSOE": 0.2900, "Vox": 0.2044, "Sumar": 0.0414, "Podem": 0.0338, "SALF": 0.0177, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Castellón", "PP": 0.3403, "PSOE": 0.2839, "Vox": 0.2305, "Sumar": 0.0705, "Podem": 0.0453, "SALF": 0.0166, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Ceuta", "PP": 0.3751, "PSOE": 0.2961, "Vox": 0.3377, "Sumar": 0.0118, "Podem": 0.0180, "SALF": 0.0251, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Ciudad Real", "PP": 0.3925, "PSOE": 0.3083, "Vox": 0.2363, "Sumar": 0.0301, "Podem": 0.0258, "SALF": 0.0142, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Córdoba", "PP": 0.3664, "PSOE": 0.2796, "Vox": 0.2029, "Sumar": 0.0675, "Podem": 0.0455, "SALF": 0.0167, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Cuenca", "PP": 0.3848, "PSOE": 0.3249, "Vox": 0.2261, "Sumar": 0.0271, "Podem": 0.0241, "SALF": 0.0135, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Gipuzkoa", "PP": 0.0831, "PSOE": 0.2029, "Vox": 0.0304, "Sumar": 0.0523, "Podem": 0.0447, "SALF": 0.0040, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.2974, "PNV": 0.2490, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Girona", "PP": 0.0938, "PSOE": 0.2517, "Vox": 0.1015, "Sumar": 0.0542, "Podem": 0.0403, "SALF": 0.0072, "ERC": 0.1373, "JxCat": 0.1856, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Granada", "PP": 0.3577, "PSOE": 0.2874, "Vox": 0.2348, "Sumar": 0.0572, "Podem": 0.0429, "SALF": 0.0189, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Guadalajara", "PP": 0.3519, "PSOE": 0.2874, "Vox": 0.2797, "Sumar": 0.0449, "Podem": 0.0396, "SALF": 0.0209, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Huelva", "PP": 0.3529, "PSOE": 0.3135, "Vox": 0.2116, "Sumar": 0.0513, "Podem": 0.0380, "SALF": 0.0158, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Huesca", "PP": 0.3703, "PSOE": 0.2918, "Vox": 0.1841, "Sumar": 0.0567, "Podem": 0.0418, "SALF": 0.0148, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Jaén", "PP": 0.3616, "PSOE": 0.3161, "Vox": 0.2145, "Sumar": 0.0394, "Podem": 0.0301, "SALF": 0.0146, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "La Rioja", "PP": 0.4418, "PSOE": 0.3109, "Vox": 0.1406, "Sumar": 0.0320, "Podem": 0.0313, "SALF": 0.0116, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Las Palmas", "PP": 0.2504, "PSOE": 0.2891, "Vox": 0.2116, "Sumar": 0.0503, "Podem": 0.0469, "SALF": 0.0206, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0508, "UPN": 0.0000},
+{"name": "León", "PP": 0.3577, "PSOE": 0.2926, "Vox": 0.1870, "Sumar": 0.0330, "Podem": 0.0327, "SALF": 0.0131, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Lleida", "PP": 0.1237, "PSOE": 0.2569, "Vox": 0.0986, "Sumar": 0.0389, "Podem": 0.0296, "SALF": 0.0074, "ERC": 0.1738, "JxCat": 0.1704, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Lugo", "PP": 0.4872, "PSOE": 0.2639, "Vox": 0.0623, "Sumar": 0.0256, "Podem": 0.0229, "SALF": 0.0053, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.1263, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Madrid", "PP": 0.3915, "PSOE": 0.2430, "Vox": 0.2029, "Sumar": 0.0759, "Podem": 0.0563, "SALF": 0.0162, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Málaga", "PP": 0.3703, "PSOE": 0.2639, "Vox": 0.2392, "Sumar": 0.0601, "Podem": 0.0431, "SALF": 0.0225, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Melilla", "PP": 0.4756, "PSOE": 0.2212, "Vox": 0.2319, "Sumar": 0.0148, "Podem": 0.0151, "SALF": 0.0186, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Murcia", "PP": 0.3983, "PSOE": 0.2203, "Vox": 0.3160, "Sumar": 0.0468, "Podem": 0.0336, "SALF": 0.0218, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Navarre", "PP": 0.1614, "PSOE": 0.2386, "Vox": 0.0826, "Sumar": 0.0636, "Podem": 0.0501, "SALF": 0.0092, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.1644, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.1378},
+{"name": "Ourense", "PP": 0.4824, "PSOE": 0.2648, "Vox": 0.0681, "Sumar": 0.0266, "Podem": 0.0212, "SALF": 0.0056, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.1220, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Palencia", "PP": 0.4051, "PSOE": 0.3005, "Vox": 0.1870, "Sumar": 0.0296, "Podem": 0.0260, "SALF": 0.0131, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Pontevedra", "PP": 0.3828, "PSOE": 0.2735, "Vox": 0.0681, "Sumar": 0.0651, "Podem": 0.0437, "SALF": 0.0069, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.1365, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Salamanca", "PP": 0.4544, "PSOE": 0.2648, "Vox": 0.2131, "Sumar": 0.0271, "Podem": 0.0259, "SALF": 0.0128, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Santa Cruz de Tenerife", "PP": 0.3422, "PSOE": 0.2926, "Vox": 0.1370, "Sumar": 0.0537, "Podem": 0.0466, "SALF": 0.0171, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.1338, "UPN": 0.0000},
+{"name": "Segovia", "PP": 0.4360, "PSOE": 0.2656, "Vox": 0.2058, "Sumar": 0.0394, "Podem": 0.0329, "SALF": 0.0144, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Seville", "PP": 0.3229, "PSOE": 0.3188, "Vox": 0.1928, "Sumar": 0.0690, "Podem": 0.0508, "SALF": 0.0190, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Soria", "PP": 0.3596, "PSOE": 0.2569, "Vox": 0.1420, "Sumar": 0.0168, "Podem": 0.0231, "SALF": 0.0101, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Tarragona", "PP": 0.1344, "PSOE": 0.2865, "Vox": 0.1507, "Sumar": 0.0557, "Podem": 0.0424, "SALF": 0.0110, "ERC": 0.1411, "JxCat": 0.1051, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Teruel", "PP": 0.3393, "PSOE": 0.2543, "Vox": 0.1899, "Sumar": 0.0266, "Podem": 0.0219, "SALF": 0.0147, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Toledo", "PP": 0.3664, "PSOE": 0.2830, "Vox": 0.2855, "Sumar": 0.0404, "Podem": 0.0317, "SALF": 0.0170, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Valencia", "PP": 0.3258, "PSOE": 0.2796, "Vox": 0.2203, "Sumar": 0.0828, "Podem": 0.0526, "SALF": 0.0182, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Valladolid", "PP": 0.3954, "PSOE": 0.2848, "Vox": 0.2203, "Sumar": 0.0434, "Podem": 0.0367, "SALF": 0.0149, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Zamora", "PP": 0.4331, "PSOE": 0.2830, "Vox": 0.1913, "Sumar": 0.0276, "Podem": 0.0238, "SALF": 0.0114, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000},
+{"name": "Zaragoza", "PP": 0.3490, "PSOE": 0.2682, "Vox": 0.2218, "Sumar": 0.0666, "Podem": 0.0456, "SALF": 0.0167, "ERC": 0.0000, "JxCat": 0.0000, "EhB": 0.0000, "PNV": 0.0000, "BNG": 0.0000, "Cca": 0.0000, "UPN": 0.0000}]};
 
 const CONSTITUENCY_SEATS = {
-  "1 – Legnica": 12,
-  "2 – Wałbrzych": 8,
-  "3 – Wrocław": 14,
-  "4 – Bydgoszcz": 12,
-  "5 – Toruń": 13,
-  "6 – Lublin": 15,
-  "7 – Chełm": 12,
-  "8 – Zielona Góra": 12,
-  "9 – Łódź": 10,
-  "10 – Piotrków Trybunalski": 9,
-  "11 – Sieradz": 12,
-  "12 – Kraków I": 8,
-  "13 – Kraków II": 14,
-  "14 – Nowy Sącz": 10,
-  "15 – Tarnów": 9,
-  "16 – Płock": 10,
-  "17 – Radom": 9,
-   "18 – Siedlce": 12,
-   "19 – Warsaw I": 20,
-   "20 – Warsaw II": 12,
-   "21 – Opole": 12,
-   "22 – Krosno": 11,
-   "23 – Rzeszów": 15,
-   "24 – Białystok": 14,
-   "25 – Gdańsk": 12,
-   "26 – Słupsk": 14,
-   "27 – Bielsko-Biała I": 9,
-   "28 – Częstochowa": 7,
-   "29 – Katowice I": 9,
-   "30 – Bielsko-Biała II": 9,
-   "31 – Katowice II": 12,
-   "32 – Katowice III": 9,
-   "33 – Kielce": 16,
-   "34 – Elbląg": 8,
-   "35 – Olsztyn": 10,
-   "36 – Kalisz": 12,
-   "37 – Konin": 9,
-   "38 – Piła": 9,
-   "39 – Poznań": 10,
-   "40 – Koszalin": 8,
-   "41 – Szczecin": 12
+  "A Coruña": 8,
+  "Álava": 4,
+  "Albacete": 4,
+  "Alicante": 12,
+  "Almería": 6,
+  "Asturias": 7,
+  "Ávila": 3,
+  "Badajoz": 5,
+  "Balearic Islands": 8,
+  "Barcelona": 32,
+  "Biscay": 8,
+  "Burgos": 4,
+  "Cáceres": 4,
+  "Cádiz": 9,
+  "Cantabria": 5,
+  "Castellón": 5,
+  "Ceuta": 1,
+  "Ciudad Real": 5,
+  "Córdoba": 6,
+  "Cuenca": 3,
+  "Gipuzkoa": 6,
+  "Girona": 6,
+  "Granada": 7,
+  "Guadalajara": 3,
+  "Huelva": 5,
+  "Huesca": 3,
+  "Jaén": 5,
+  "La Rioja": 4,
+  "Las Palmas": 8,
+  "León": 4,
+  "Lleida": 4,
+  "Lugo": 4,
+  "Madrid": 37,
+  "Málaga": 11,
+  "Melilla": 1,
+  "Murcia": 10,
+  "Navarre": 5,
+  "Ourense": 4,
+  "Palencia": 3,
+  "Pontevedra": 7,
+  "Salamanca": 4,
+  "Santa Cruz de Tenerife": 7,
+  "Segovia": 3,
+  "Seville": 12,
+  "Soria": 2,
+  "Tarragona": 6,
+  "Teruel": 3,
+  "Toledo": 6,
+  "Valencia": 16,
+  "Valladolid": 5,
+  "Zamora": 3,
+  "Zaragoza": 7
 };
+
 
 /* ---- Party setup ---- */
 const PARTIES = ["PP", "PSOE", "Vox", "Sumar", "Podem", "SALF", "ERC", "JxCat", "EhB", "PNV", "BNG", "Cca", "UPN"];
@@ -547,7 +569,7 @@ renderTable();
 document.addEventListener('DOMContentLoaded',()=>calculate());
 
 /* ---- Coalition Builder ---- */
-const COAL_TOTAL=460,COAL_MAJ=231;
+const COAL_TOTAL=350,COAL_MAJ=176;
 let selected=[];
 const legend=document.getElementById("legend"),overlay=document.getElementById("coalition-overlay"),counter=document.getElementById("counter");
 
