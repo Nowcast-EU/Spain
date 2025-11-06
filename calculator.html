@@ -584,15 +584,23 @@ function updateCoalitionFromTotals(t){lastTotalsCache=t;renderCoalition(t);}
 
 function renderCoalition(t){
   if(!t)return;
-  overlay.innerHTML="";legend.innerHTML="";
-  PARTIES.forEach(n=>{
-    const s=t[n]||0;
-    const item=document.createElement('div');
-    item.className='legend-item'+(selected.includes(n)?' active':'');
-    item.innerHTML=`<div class="legend-box" style="background:${PARTY_COLORS[n]||'#999'}"></div> <strong>${n}</strong> ${s}`;
-    item.onclick=()=>toggleParty(n);
-    legend.appendChild(item);
-  });
+overlay.innerHTML = "";
+legend.innerHTML = "";
+
+// 🟢 Only show parties that currently have seats
+const validParties = PARTIES.filter(n => (t[n] || 0) > 0);
+
+// ❌ Do NOT clear "selected" — this allows zero-seat parties to stay selected
+// selected = selected.filter(n => validParties.includes(n));
+
+validParties.forEach(n => {
+  const s = t[n] || 0;
+  const item = document.createElement('div');
+  item.className = 'legend-item' + (selected.includes(n) ? ' active' : '');
+  item.innerHTML = `<div class="legend-box" style="background:${PARTY_COLORS[n] || '#999'}"></div> <strong>${n}</strong> ${s}`;
+  item.onclick = () => toggleParty(n);
+  legend.appendChild(item);
+});
 
   const totalSel=selected.reduce((s,n)=>s+(t[n]||0),0);
   const width=(totalSel/COAL_TOTAL)*100;
