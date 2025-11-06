@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<!-- Primary Meta Tags -->
+<title>🇵🇱 Poland | Seat Calculator</title>
+<meta name="title" content="🇵🇱 Poland | Seat Calculator">
+<meta name="description" content="">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nowcast-eu.github.io/Poland/calculator.html">
+<meta property="og:title" content="🇵🇱 Poland | Seat Calculator">
+<meta property="og:description" content="">
+<meta property="og:image" content="https://nowcast-eu.github.io/Poland/thumbnail.png">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:url" content="https://nowcast-eu.github.io/Poland/calculator.html">
+<meta name="twitter:title" content="🇵🇱 Poland | Seat Calculator">
+<meta name="twitter:description" content="">
+<meta name="twitter:image" content="https://nowcast-eu.github.io/Poland/thumbnail.png">
+
+<link rel="icon" type="image/png" href="https://nowcast-eu.github.io/Poland/favicon.png">
+
+<style>
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    background: #fff;
+    color: #0f172a;
+    margin: 0;
+    padding: 0 24px 24px 24px;
+  }
+
+  /* Narrower padding on mobile */
+  @media (max-width: 768px) {
+    body {
+      padding: 0 8px 24px 8px;
+    }
+  }
+
+  h1 {
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.6rem;
+    margin: 28px 0 12px 0;
+  }
+
+  table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 12px; 
+    table-layout: fixed; 
+  }
+
+  th, td { 
+    padding: 4px 6px; 
+    border: 1px solid #e2e8f0; 
+    text-align: left; 
+    word-wrap: break-word; 
+  }
+
+  th { background: #f1f5f9; font-weight: 600; }
+  td.party-column { font-weight: bold; position: relative; padding-left: 14px; color: black; }
+  td.party-column::before { content: ""; position: absolute; left: 0; top: 0; width: 8px; height: 100%; border-radius: 2px 0 0 2px; background-color: var(--party-color); }
+  td.ge2024-column { font-style: italic; color: #999999; }
+  td.seats-column, td.diff-column { font-weight: bold; text-align: center; }
+  .diff-column.positive { color: #008500; }
+  .diff-column.negative { color: #bb0000; }
+  .diff-column.equal { color: #555555; }
+
+  .input-wrapper { display: flex; align-items: center; justify-content: flex-start; }
+  .input-wrapper input {
+    width: 50px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;
+    text-align: left; margin-right: 4px; transition: border-color 0.3s ease;
+  }
+  .percent-sign { font-size: 14px; }
+
+  /* --- BUTTONS --- */
+  .button-container { 
+    display: flex; 
+    gap: 8px; 
+    margin-top: 14px; 
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  button#calculate, button#reset {
+    background: #008500; 
+    color: #fff; 
+    border: none; 
+    border-radius: 6px;
+    padding: 8px 14px; 
+    cursor: pointer; 
+    transition: background 0.3s ease;
+  }
+
+  /* Calculate = 80%, Reset = 20% */
+  button#calculate { flex: 0 0 78%; }
+  button#reset { flex: 0 0 20%; }
+
+  tfoot td { font-weight: bold; text-align: center; background: #f1f5f9; }
+  tfoot td:first-child { text-align: left; padding-left: 14px; }
+
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+
+  /* Coalition builder */
+  #coalition-builder { margin-top: 48px; }
+  .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  h3 { margin: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 15px; }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+    border: 1px solid #ccc; border-radius: 8px; padding: 6px 10px; background: #f3f3f3;
+    transition: all 0.25s ease; opacity: 0.6; font-weight: normal;
+  }
+  .legend-item:hover { transform: translateY(-1px); }
+  .legend-item.active { opacity: 1; background: #ffffff; border-color: #999; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-weight: bold; }
+  .legend-box { width: 20px; height: 20px; border-radius: 4px; }
+  .bar-container { position: relative; height: 117px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin-bottom: 12px; width: 100%; }
+  .coalition-overlay { position: absolute; top: 0; left: 0; height: 100%; width: 0%; border-top-left-radius: 10px; border-bottom-left-radius: 10px; display: flex; overflow: hidden; transition: width 1s ease; }
+  .segment { height: 100%; flex-shrink: 0; border-radius: 0; }
+  .majority-line {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: repeating-linear-gradient(to bottom,#333,#333 5px,transparent 5px,transparent 10px);
+    left: 50%;
+  }
+  .counter { font-size: 22px; font-weight: bold; text-align: center; margin-bottom: 8px; }
+  .note { font-size: 13px; color: #555; text-align: center; }
+
+  /* --- MOBILE VIEW --- */
+  @media (max-width: 768px) {
+    table, th, td { font-size: 13px; }
+    .counter { font-size: 18px; }
+    h3 { font-size: 16px; }
+    .legend-item { font-size: 12px; padding: 5px 8px; }
+    .input-wrapper input { width: 45px; }
+
+    /* 👇 manually control column widths on mobile */
+    table th:nth-child(1), table td:nth-child(1) { width: 20%; } /* Party */
+    table th:nth-child(2), table td:nth-child(2) { width: 15%; } /* 2023 */
+    table th:nth-child(3), table td:nth-child(3) { width: 25%; } /* Votes */
+    table th:nth-child(4), table td:nth-child(4) { width: 20%; } /* Seats */
+    table th:nth-child(5), table td:nth-child(5) { width: 20%; } /* +/- */
+  }
+
+  @media (max-width: 480px) {
+    table, th, td { font-size: 12px; }
+    .input-wrapper input { width: 40px; }
+  }
+/* --- Uniform table header height + centered header text --- */
+th {
+  height: 30px;           /* 👈 match td height for visual consistency */
+  font-weight: 650;
+  text-align: center;     /* 👈 header text centered only */
+  vertical-align: middle; /* 👈 keep it perfectly aligned vertically */
+}
+
+td {
+  height: 30px;           /* 👈 match th height */
+  vertical-align: middle; /* 👈 ensures text sits evenly across rows */
+}
+/* --- Make the Totals row shorter --- */
+tfoot td {
+  height: 20px;             /* roughly 2/3 of 36px */
+  vertical-align: middle;
+}
+
+
+/* --- Responsive rectangular tab switcher --- */
+/* --- Final rectangular tab switcher --- */
+.tab-switcher {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f4f4f4;
+  border-radius: 12px;
+  padding: 3px;
+  border: 1px solid #d0d0d0;
+  overflow: hidden;
+  width: 140px;             /* base width desktop */
+  max-width: 100%;
+  height: 38px;
+  box-sizing: border-box;
+  -webkit-user-select: none; /* 👈 prevent highlight */
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.tab-btn {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  color: #111;
+  text-align: center;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color 0.25s ease, font-weight 0.25s ease;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent; /* 👈 remove blue tap flash */
+}
+
+.tab-btn.active {
+  font-weight: 700;
+}
+
+.tab-btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.tab-pill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  right: 50%;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1;
+}
+
+/* --- Mobile scaling + perfect edge alignment --- */
+@media (max-width: 480px) {
+  .tab-switcher {
+    width: 120px;
+    height: 34px;
+    padding: 3px;
+  }
+  .tab-btn {
+    font-size: 13px;
+  }
+  .tab-pill {
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    right: 50%;
+  }
+}
+
+</style>
+</head>
+
+<body>
+<h1>Poland | @Nowcast_EU Interactive Seat Calculator</h1>
+  
+<table>
+  <thead>
+    <tr>
+      <th>Party</th>
+      <th>2023</th>
+      <th>Votes (%)</th>
+      <th>Seats</th>
+      <th>+/- 2023</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+  <tfoot>
+    <tr>
+      <td>Totals</td>
+      <td></td>
+      <td id="total-votes">0.0%</td>
+      <td id="total-seats">0</td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+
+<div class="button-container">
+  <button id="calculate">Calculate</button>
+  <button id="reset">Reset</button>
+</div>
+
+<div id="coalition-builder">
+<div class="header-container">
+  <h3>Coalition Builder (User Generated)</h3>
+
+  <div class="tab-switcher">
+    <div class="tab-pill" id="tab-pill"></div>
+    <button class="tab-btn active" id="tab-result">Result</button>
+    <button class="tab-btn" id="tab-2023">2023</button>
+  </div>
+</div>
+
+  <div class="legend" id="legend"></div>
+  <div class="bar-container" id="bar">
+    <div class="coalition-overlay" id="coalition-overlay"></div>
+    <div class="majority-line" title="Majority (231 seats)"></div>
+  </div>
+  <div class="counter" id="counter">0 / 460</div>
+  <div class="note">Majority = 231 seats</div>
+</div>
+
+<script>
+const BASELINE = {"baseline_national": {"PP": 0.32, "PSOE": 0.2761, "Vox": 0.1797, "Sumar": 0.0606, "Podem": 0.0460, "SALF": 0.0145, "ERC": 0.0178, "JxCat": 0.0151, "EhB": 0.0133, "PNV": 0.0121, "BNG": 0.0087, "Cca": 0.0040, "UPN": 0.0018},
+    
+ "constituencies": [{"name": "1 – Legnica", "PP": 0.172033898, "PSOE": 0.170550489, "Vox": 0.097048611, "Sumar": 0.089583333, "Podem": 0.117635447, "AWA": 0.0, "SALF": 0.097844399, "ERC": 0.079125, "OTH": 0.050842105, "JxCat": 0.070333333},                    
+ {"name": "2 – Wałbrzych", "PP": 0.164816384, "PSOE": 0.187666124, "Vox": 0.109506944, "Sumar": 0.101083333, "Podem": 0.102792331, "AWA": 0.0, "SALF": 0.085574741, "ERC": 0.07525, "OTH": 0.035473684, "JxCat": 0.066888889},                    
+{"name": "3 – Wrocław", "PP": 0.131793785, "PSOE": 0.186504886, "Vox": 0.124041667, "Sumar": 0.1145, "Podem": 0.146731136, "AWA": 0.0, "SALF": 0.151524905, "ERC": 0.08725, "OTH": 0.045578947, "JxCat": 0.077555556}, 
+{"name": "4 – Bydgoszcz", "PP": 0.150529661, "PSOE": 0.176760586, "Vox": 0.135958333, "Sumar": 0.1255, "Podem": 0.127634971, "AWA": 0.0, "SALF": 0.105562597, "ERC": 0.08025, "OTH": 0.033052632, "JxCat": 0.071333333}, 
+{"name": "5 – Toruń", "PP": 0.168375706, "PSOE": 0.149042345, "Vox": 0.141555556, "Sumar": 0.130666667, "Podem": 0.139063904, "AWA": 0.0, "SALF": 0.113266393, "ERC": 0.079625, "OTH": 0.032736842, "JxCat": 0.070777778}, 
+{"name": "6 – Lublin", "PP": 0.224830508, "PSOE": 0.102592834, "Vox": 0.143270833, "Sumar": 0.13225, "Podem": 0.075185868, "AWA": 0.0, "SALF": 0.078668228, "ERC": 0.10475, "OTH": 0.044736842, "JxCat": 0.093111111}, 
+{"name": "7 – Chełm", "PP": 0.250882768, "PSOE": 0.087850163, "Vox": 0.117722222, "Sumar": 0.108666667, "Podem": 0.071171162, "AWA": 0.0, "SALF": 0.06308123, "ERC": 0.097375, "OTH": 0.056736842, "JxCat": 0.086555556}, 
+{"name": "8 – Zielona Góra", "PP": 0.137231638, "PSOE": 0.190493485, "Vox": 0.136048611, "Sumar": 0.125583333, "Podem": 0.115543373, "AWA": 0.0, "SALF": 0.098864553, "ERC": 0.081375, "OTH": 0.038421053, "JxCat": 0.072333333}, 
+{"name": "9 – Łódź", "PP": 0.132584746, "PSOE": 0.207356678, "Vox": 0.107340278, "Sumar": 0.099083333, "Podem": 0.159214017, "AWA": 0.0, "SALF": 0.140778706, "ERC": 0.069625, "OTH": 0.025578947, "JxCat": 0.061888889}, 
+{"name": "10 – Piotrków Trybunalski", "PP": 0.230367232, "PSOE": 0.109509772, "Vox": 0.123951389, "Sumar": 0.114416667, "Podem": 0.084585458, "AWA": 0.0, "SALF": 0.076190152, "ERC": 0.09525, "OTH": 0.041894737, "JxCat": 0.084666667},                     
+{"name": "11 – Sieradz", "PP": 0.204957627, "PSOE": 0.130714984, "Vox": 0.130902778, "Sumar": 0.120833333, "Podem": 0.102837047, "AWA": 0.0, "SALF": 0.088003758, "ERC": 0.08525, "OTH": 0.037789474, "JxCat": 0.075777778}, 
+{"name": "12 – Kraków I", "PP": 0.211878531, "PSOE": 0.122384365, "Vox": 0.135145833, "Sumar": 0.12475, "Podem": 0.078725841, "AWA": 0.0, "SALF": 0.079185256, "ERC": 0.0985, "OTH": 0.042105263, "JxCat": 0.087555556}, 
+{"name": "13 – Kraków II", "PP": 0.151666667, "PSOE": 0.155151466, "Vox": 0.152208333, "Sumar": 0.1405, "Podem": 0.141819683, "AWA": 0.0, "SALF": 0.159393345, "ERC": 0.096375, "OTH": 0.031368421, "JxCat": 0.085666667}, 
+{"name": "14 – Nowy Sącz", "PP": 0.265614407, "PSOE": 0.081286645, "Vox": 0.104541667, "Sumar": 0.0965, "Podem": 0.041877269, "AWA": 0.0, "SALF": 0.049533629, "ERC": 0.109125, "OTH": 0.070210526, "JxCat": 0.097}, 
+{"name": "15 – Tarnów", "PP": 0.240600282, "PSOE": 0.085931596, "Vox": 0.168277778, "Sumar": 0.155333333, "Podem": 0.055187991, "AWA": 0.0, "SALF": 0.065275242, "ERC": 0.099875, "OTH": 0.038736842, "JxCat": 0.088777778}, 
+{"name": "16 – Płock", "PP": 0.21805791, "PSOE": 0.113094463, "Vox": 0.154104167, "Sumar": 0.14225, "Podem": 0.086038763, "AWA": 0.0, "SALF": 0.074370255, "ERC": 0.0815, "OTH": 0.035578947, "JxCat": 0.072444444}, 
+{"name": "17 – Radom", "PP": 0.240649718, "PSOE": 0.105824104, "Vox": 0.126208333, "Sumar": 0.1165, "Podem": 0.075317986, "AWA": 0.0, "SALF": 0.073814891, "ERC": 0.091375, "OTH": 0.039368421, "JxCat": 0.081222222}, 
+{"name": "18 – Siedlce", "PP": 0.240353107, "PSOE": 0.094464169, "Vox": 0.140020833, "Sumar": 0.12925, "Podem": 0.065091144, "AWA": 0.0, "SALF": 0.064113314, "ERC": 0.102625, "OTH": 0.043263158, "JxCat": 0.091222222}, 
+{"name": "19 – Warsaw I", "PP": 0.099562147, "PSOE": 0.218262215, "Vox": 0.119618056, "Sumar": 0.110416667, "Podem": 0.180314213, "AWA": 0.0, "SALF": 0.172383327, "ERC": 0.078, "OTH": 0.028315789, "JxCat": 0.069333333}, 
+{"name": "20 – Warsaw II", "PP": 0.15690678, "PSOE": 0.177871336, "Vox": 0.135958333, "Sumar": 0.1255, "Podem": 0.098212987, "AWA": 0.0, "SALF": 0.095142985, "ERC": 0.08825, "OTH": 0.040631579, "JxCat": 0.078444444},                    
+{"name": "21 – Opole", "PP": 0.154533898, "PSOE": 0.169591205, "Vox": 0.115013889, "Sumar": 0.106166667, "Podem": 0.093942105, "AWA": 0.0, "SALF": 0.087394635, "ERC": 0.081125, "OTH": 0.091368421, "JxCat": 0.072111111}, 
+{"name": "22 – Krosno", "PP": 0.270409605, "PSOE": 0.08002443, "Vox": 0.124493056, "Sumar": 0.114916667, "Podem": 0.05743997, "AWA": 0.0, "SALF": 0.054877637, "ERC": 0.10775, "OTH": 0.027052632, "JxCat": 0.095777778}, 
+{"name": "23 – Rzeszów", "PP": 0.255084746, "PSOE": 0.089364821, "Vox": 0.112125, "Sumar": 0.1035, "Podem": 0.062484287, "AWA": 0.0, "SALF": 0.065885816, "ERC": 0.1185, "OTH": 0.041368421, "JxCat": 0.105333333}, 
+{"name": "24 – Białystok", "PP": 0.209555085, "PSOE": 0.105218241, "Vox": 0.170263889, "Sumar": 0.157166667, "Podem": 0.066561293, "AWA": 0.0, "SALF": 0.068427361, "ERC": 0.122375, "OTH": 0.034421053, "JxCat": 0.108777778}, 
+{"name": "25 – Gdańsk", "PP": 0.124576271, "PSOE": 0.210537459, "Vox": 0.132708333, "Sumar": 0.1225, "Podem": 0.127055523, "AWA": 0.0, "SALF": 0.132600423, "ERC": 0.077875, "OTH": 0.029052632, "JxCat": 0.069222222}, 
+{"name": "26 – Słupsk", "PP": 0.144548023, "PSOE": 0.19140228, "Vox": 0.1226875, "Sumar": 0.11325, "Podem": 0.109515962, "AWA": 0.0, "SALF": 0.101822374, "ERC": 0.090125, "OTH": 0.039157895, "JxCat": 0.080111111}, 
+{"name": "27 – Bielsko-Biała I", "PP": 0.181475989, "PSOE": 0.144750814, "Vox": 0.131354167, "Sumar": 0.12125, "Podem": 0.097642427, "AWA": 0.0, "SALF": 0.091910625, "ERC": 0.098, "OTH": 0.047052632, "JxCat": 0.087111111}, 
+{"name": "28 – Częstochowa", "PP": 0.179696328, "PSOE": 0.146972313, "Vox": 0.132888889, "Sumar": 0.122666667, "Podem": 0.116959966, "AWA": 0.0, "SALF": 0.101000901, "ERC": 0.082, "OTH": 0.040315789, "JxCat": 0.072888889}, 
+{"name": "29 – Katowice I", "PP": 0.149096045, "PSOE": 0.182061889, "Vox": 0.120430556, "Sumar": 0.111166667, "Podem": 0.118989226, "AWA": 0.0, "SALF": 0.111628861, "ERC": 0.086875, "OTH": 0.045052632, "JxCat": 0.077222222}, 
+{"name": "30 – Bielsko-Biała II", "PP": 0.188149718, "PSOE": 0.151364821, "Vox": 0.112395833, "Sumar": 0.10375, "Podem": 0.090401541, "AWA": 0.0, "SALF": 0.085871865, "ERC": 0.1, "OTH": 0.049157895, "JxCat": 0.088888889},
+                    
+{"name": "31 – Katowice II", "PP": 0.152655367, "PSOE": 0.185747557, "Vox": 0.119798611, "Sumar": 0.110583333, "Podem": 0.115130728, "AWA": 0.0, "SALF": 0.115182071, "ERC": 0.08375, "OTH": 0.041052632, "JxCat": 0.074444444}, 
+{"name": "32 – Katowice III", "PP": 0.147019774, "PSOE": 0.152980456, "Vox": 0.088923611, "Sumar": 0.082083333, "Podem": 0.245079896, "AWA": 0.0, "SALF": 0.180162757, "ERC": 0.071125, "OTH": 0.029684211, "JxCat": 0.063222222}, 
+{"name": "33 – Kielce", "PP": 0.232690678, "PSOE": 0.105672638, "Vox": 0.124583333, "Sumar": 0.115, "Podem": 0.086776523, "AWA": 0.0, "SALF": 0.076817302, "ERC": 0.081875, "OTH": 0.050631579, "JxCat": 0.072777778}, 
+{"name": "34 – Elbląg", "PP": 0.174011299, "PSOE": 0.160907166, "Vox": 0.139027778, "Sumar": 0.128333333, "Podem": 0.106063675, "AWA": 0.0, "SALF": 0.087230444, "ERC": 0.08175, "OTH": 0.030421053, "JxCat": 0.072666667}, 
+{"name": "35 – Olsztyn", "PP": 0.159823446, "PSOE": 0.166965798, "Vox": 0.1454375, "Sumar": 0.13425, "Podem": 0.107742744, "AWA": 0.0, "SALF": 0.095348937, "ERC": 0.086625, "OTH": 0.036421053, "JxCat": 0.077}, 
+{"name": "36 – Kalisz", "PP": 0.177224576, "PSOE": 0.145659609, "Vox": 0.145888889, "Sumar": 0.134666667, "Podem": 0.110165624, "AWA": 0.0, "SALF": 0.094682389, "ERC": 0.08725, "OTH": 0.041157895, "JxCat": 0.077555556}, 
+{"name": "37 – Konin", "PP": 0.191264124, "PSOE": 0.12112215, "Vox": 0.150131944, "Sumar": 0.138583333, "Podem": 0.12076544, "AWA": 0.0, "SALF": 0.09997231, "ERC": 0.087125, "OTH": 0.044631579, "JxCat": 0.077444444}, 
+{"name": "38 – Piła", "PP": 0.143905367, "PSOE": 0.176053746, "Vox": 0.159430556, "Sumar": 0.147166667, "Podem": 0.106070519, "AWA": 0.0, "SALF": 0.092096721, "ERC": 0.085875, "OTH": 0.038421053, "JxCat": 0.076333333}, 
+{"name": "39 – Poznań", "PP": 0.09674435, "PSOE": 0.222604235, "Vox": 0.149319444, "Sumar": 0.137833333, "Podem": 0.161737228, "AWA": 0.0, "SALF": 0.16780546, "ERC": 0.07375, "OTH": 0.016736842, "JxCat": 0.065555556}, 
+{"name": "40 – Koszalin", "PP": 0.155028249, "PSOE": 0.195340391, "Vox": 0.111493056, "Sumar": 0.102916667, "Podem": 0.11424915, "AWA": 0.0, "SALF": 0.087450052, "ERC": 0.07525, "OTH": 0.030210526, "JxCat": 0.066888889}, 
+{"name": "41 – Szczecin", "PP": 0.142323446, "PSOE": 0.202610749, "Vox": 0.113930556, "Sumar": 0.105166667, "Podem": 0.120915947, "AWA": 0.0, "SALF": 0.108637695, "ERC": 0.07425, "OTH": 0.032947368, "JxCat": 0.066}]};
+
+const CONSTITUENCY_SEATS = {
+  "1 – Legnica": 12,
+  "2 – Wałbrzych": 8,
+  "3 – Wrocław": 14,
+  "4 – Bydgoszcz": 12,
+  "5 – Toruń": 13,
+  "6 – Lublin": 15,
+  "7 – Chełm": 12,
+  "8 – Zielona Góra": 12,
+  "9 – Łódź": 10,
+  "10 – Piotrków Trybunalski": 9,
+  "11 – Sieradz": 12,
+  "12 – Kraków I": 8,
+  "13 – Kraków II": 14,
+  "14 – Nowy Sącz": 10,
+  "15 – Tarnów": 9,
+  "16 – Płock": 10,
+  "17 – Radom": 9,
+   "18 – Siedlce": 12,
+   "19 – Warsaw I": 20,
+   "20 – Warsaw II": 12,
+   "21 – Opole": 12,
+   "22 – Krosno": 11,
+   "23 – Rzeszów": 15,
+   "24 – Białystok": 14,
+   "25 – Gdańsk": 12,
+   "26 – Słupsk": 14,
+   "27 – Bielsko-Biała I": 9,
+   "28 – Częstochowa": 7,
+   "29 – Katowice I": 9,
+   "30 – Bielsko-Biała II": 9,
+   "31 – Katowice II": 12,
+   "32 – Katowice III": 9,
+   "33 – Kielce": 16,
+   "34 – Elbląg": 8,
+   "35 – Olsztyn": 10,
+   "36 – Kalisz": 12,
+   "37 – Konin": 9,
+   "38 – Piła": 9,
+   "39 – Poznań": 10,
+   "40 – Koszalin": 8,
+   "41 – Szczecin": 12
+};
+
+/* ---- Party setup ---- */
+const PARTIES = ["PP", "PSOE", "Vox", "Sumar", "Podem", "SALF", "ERC", "JxCat", "EhB", "PNV", "BNG", "Cca", "UPN"];
+const PARTY_COLORS = {"PP":"#2241B5","PSOE":"#FF6611","Vox":"#FFD700","Sumar":"#3DB53A","Podem":"#C00000","SALF":"#CC00CC","ERC":"#000000","JxCat":"#A75325","EhB":"#000000","PNV":"#000000","BNG":"#000000","Cca":"#000000","UPN":"#000000"};
+const GE2024 = {"PP":33.1,"PSOE":31.7,"Vox":12.4,"Sumar":12.3,"Podem":0.0,"SALF":0.0,"ERC":1.9,"JxCat":1.6,"EhB":1.4,"PNV":1.1,"BNG":0.6,"Cca":0.5,"UPN":0.2};
+const DEFAULTS = {"PP":32.0,"PSOE":27.6,"Vox":18.0,"Sumar":6.1,"Podem":4.6,"SALF":1.5,"ERC":1.8,"JxCat":1.5,"EhB":1.3,"PNV":1.2,"BNG":0.9,"Cca":0.4,"UPN":0.2};
+const PREV_2023 = {"PP":137,"PSOE":121,"Vox":33,"Sumar":31,"Podem":0,"SALF":0,"ERC":7,"JxCat":7,"EhB":6,"PNV":5,"BNG":1,"Cca":1,"UPN":1};
+
+const parties = PARTIES.map(name => ({
+  name,
+  color: PARTY_COLORS[name] || "#999",
+  ge2024: GE2024[name],
+  votes: DEFAULTS[name],
+  final: 0
+}));
+
+/* ---- Render table ---- */
+function renderTable(){
+  const tbody=document.getElementById('tbody');
+  tbody.innerHTML=parties.map((p,i)=>`
+    <tr>
+      <td class="party-column" style="--party-color:${p.color}">${p.name}</td>
+      <td class="ge2024-column">${p.ge2024.toFixed(1)}%</td>
+      <td>
+        <div class="input-wrapper">
+          <input type="number" id="votes-${i}" value="${p.votes.toFixed(1)}" min="0" max="100" step="0.1">
+          <span class="percent-sign">%</span>
+        </div>
+      </td>
+      <td class="seats-column" id="seats-${i}">—</td>
+      <td class="diff-column" id="diff-${i}">—</td>
+    </tr>`).join('');
+
+  const inputs=document.querySelectorAll('.input-wrapper input');
+  inputs.forEach((input,index)=>{
+    let originalValue = input.value;
+
+    input.addEventListener('focus',()=>{
+      originalValue = input.value;
+      input.value='';
+    });
+    input.addEventListener('blur',()=>{
+      if(input.value==='') input.value = originalValue;
+    });
+
+    input.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){e.preventDefault();if(inputs[index+1])inputs[index+1].focus();}
+    });
+    input.addEventListener('input',()=>{
+      updateVoteTotal();
+      document.getElementById('calculate').style.background='#ffa500';
+    });
+  });
+  updateVoteTotal();
+}
+
+function updateVoteTotal(){
+  let sum=0;
+  parties.forEach((p,i)=>{
+    sum+=parseFloat(document.getElementById(`votes-${i}`).value)||0;
+  });
+  document.getElementById('total-votes').textContent=sum.toFixed(1)+'%';
+}
+
+/* ---- Proportional swing ---- */
+function computeConstituencyShares(){
+  const target={};
+  PARTIES.forEach((n,i)=>target[n]=(parseFloat(document.getElementById(`votes-${i}`).value)||0)/100);
+  const base=BASELINE.baseline_national;const eps=1e-9;
+  return BASELINE.constituencies.map(row=>{
+    const out={name:row.name};let sum=0;
+    PARTIES.forEach(p=>{
+      const baseNat=base[p]??0;
+      const targetNat=target[p]??baseNat;
+      const ratio=(baseNat>eps)?(targetNat/baseNat):(targetNat>0?(targetNat/eps):0);
+      const val=(row[p]??0)*ratio;
+      out[p]=val;sum+=val;
+    });
+    if(sum>0)PARTIES.forEach(p=>out[p]=out[p]/sum);
+    return out;
+  });
+}
+
+/* ---- D’Hondt ---- */
+function dhondtSeats(votes,seats=6,nationalVotes,validParties){
+  const alloc=Object.fromEntries(validParties.map(p=>[p,0]));
+  for(let s=0;s<seats;s++){
+    const quotients=validParties.map(p=>({p,q:(votes[p]||0)/(alloc[p]+1)}));
+    let best=quotients[0];
+    for(let i=1;i<quotients.length;i++){
+      const x=quotients[i];
+      if(x.q>best.q||(Math.abs(x.q-best.q)<1e-12&&(nationalVotes[x.p]||0)>(nationalVotes[best.p]||0)))best=x;
+    }
+    alloc[best.p]+=1;
+  }
+  return alloc;
+}
+
+/* ---- Calculate ---- */
+function calculate(){
+  const nationalVotes={};
+  parties.forEach((p,i)=>{
+    p.votes=parseFloat(document.getElementById(`votes-${i}`).value)||0;
+    nationalVotes[p.name]=p.votes;
+  });
+
+  const perConst=computeConstituencyShares();
+  const totals=Object.fromEntries(PARTIES.map(p=>[p,0]));
+
+perConst.forEach(row => {
+  const sVotes = row; // local votes in this constituency
+
+  // 👇 Calculate total valid vote sum in this constituency
+  let totalVotes = 0;
+  PARTIES.forEach(p => totalVotes += sVotes[p] || 0);
+
+  // 👇 Apply a constituency-level threshold (e.g. 3% of local valid votes)
+  const validParties = PARTIES.filter(p => (sVotes[p] || 0) >= 0.03 * totalVotes);
+
+  // 👇 Allocate seats only among those parties
+  const s = dhondtSeats(sVotes, CONSTITUENCY_SEATS[row.name] || 6, nationalVotes, validParties);
+
+  PARTIES.forEach(p => totals[p] += (s[p] || 0));
+});
+
+  PARTIES.forEach((n,i)=>{
+    const seats=totals[n];
+    document.getElementById(`seats-${i}`).textContent=seats;
+    parties[i].final=seats;
+
+    const diff=seats-(PREV_2023[n]||0);
+    const diffCell=document.getElementById(`diff-${i}`);
+    if(diff>0){diffCell.textContent=`+${diff}`;diffCell.className='diff-column positive';}
+    else if(diff<0){diffCell.textContent=`${diff}`;diffCell.className='diff-column negative';}
+    else{diffCell.textContent='(=)';diffCell.className='diff-column equal';}
+  });
+
+  document.getElementById('total-seats').textContent=Object.values(totals).reduce((a,b)=>a+b,0);
+  document.getElementById('calculate').style.background='#008500';
+  updateCoalitionFromTotals(totals);
+}
+
+/* ---- Reset ---- */
+document.getElementById('reset').addEventListener('click',()=>{
+  parties.forEach((p,i)=>document.getElementById(`votes-${i}`).value=DEFAULTS[p.name].toFixed(1));
+  calculate();
+});
+document.getElementById('calculate').addEventListener('click',calculate);
+renderTable();
+document.addEventListener('DOMContentLoaded',()=>calculate());
+
+/* ---- Coalition Builder ---- */
+const COAL_TOTAL=460,COAL_MAJ=231;
+let selected=[];
+const legend=document.getElementById("legend"),overlay=document.getElementById("coalition-overlay"),counter=document.getElementById("counter");
+
+function toggleParty(n){
+  if(selected.includes(n))selected=selected.filter(x=>x!==n);
+  else selected.push(n);
+  renderCoalition(lastTotalsCache);
+}
+
+let lastTotalsCache=null;
+function updateCoalitionFromTotals(t){lastTotalsCache=t;renderCoalition(t);}
+
+function renderCoalition(t){
+  if(!t)return;
+  overlay.innerHTML="";legend.innerHTML="";
+  PARTIES.forEach(n=>{
+    const s=t[n]||0;
+    const item=document.createElement('div');
+    item.className='legend-item'+(selected.includes(n)?' active':'');
+    item.innerHTML=`<div class="legend-box" style="background:${PARTY_COLORS[n]||'#999'}"></div> <strong>${n}</strong> ${s}`;
+    item.onclick=()=>toggleParty(n);
+    legend.appendChild(item);
+  });
+
+  const totalSel=selected.reduce((s,n)=>s+(t[n]||0),0);
+  const width=(totalSel/COAL_TOTAL)*100;
+  overlay.style.width="0%";
+  overlay.innerHTML="";
+  if(totalSel>0){
+    selected.forEach(n=>{
+      const s=t[n]||0;
+      const seg=document.createElement('div');
+      seg.className='segment';
+      seg.style.flexBasis=((s/totalSel)*100)+'%';
+      seg.style.background=PARTY_COLORS[n]||"#999";
+      overlay.appendChild(seg);
+    });
+  }
+  requestAnimationFrame(()=>overlay.style.width=width+"%");
+  counter.textContent=`${totalSel} / ${COAL_TOTAL}`;
+  counter.style.color=totalSel>=COAL_MAJ?"#2BA84A":"#000";
+  document.querySelectorAll(".legend-item").forEach(el=>{
+    const n=el.querySelector("strong").textContent;
+    el.classList.toggle("active",selected.includes(n));
+  });
+}
+/* ---- Tab Switching (fixed state handling) ---- */
+const tabResult = document.getElementById("tab-result");
+const tab2023 = document.getElementById("tab-2023");
+let is2023View = false;
+let lastUserTotals = null; // store the most recent calculated result
+
+// --- patch: remember user totals whenever calculator runs ---
+const originalUpdateCoalitionFromTotals = updateCoalitionFromTotals;
+updateCoalitionFromTotals = function(t) {
+  if (!is2023View) lastUserTotals = t; // only store when user-generated
+  originalUpdateCoalitionFromTotals(t);
+};
+
+tabResult.addEventListener("click", () => {
+  if (!tabResult.classList.contains("active")) {
+    tabResult.classList.add("active");
+    tab2023.classList.remove("active");
+    is2023View = false;
+    document.getElementById("tab-pill").style.transform = "translateX(0%)";
+    updateCoalitionFromTotals(lastUserTotals || lastTotalsCache);
+  }
+});
+
+tab2023.addEventListener("click", () => {
+  if (!tab2023.classList.contains("active")) {
+    tab2023.classList.add("active");
+    tabResult.classList.remove("active");
+    is2023View = true;
+    document.getElementById("tab-pill").style.transform = "translateX(100%)";
+    originalUpdateCoalitionFromTotals(PREV_2023);
+  }
+});
+
+
+
+</script>
+</body>
+</html>
