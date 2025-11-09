@@ -709,6 +709,8 @@ fetch('https://nowcast-eu.github.io/Spain/FlourishSimplified.json')
 
 // --- D3-based map renderer for GeoJSON polygons ---
 function renderMap(winners = {}) {
+  console.log("renderMap() called. Example winners:", Object.entries(winners).slice(0,5));
+  
   if (!mapData) return;
 
   const width = 600, height = 700;
