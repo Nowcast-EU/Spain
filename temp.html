@@ -25,6 +25,8 @@
 
 <link rel="icon" type="image/png" href="https://nowcast-eu.github.io/Spain/ES_favicon.png">
 
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+
 <style>
   body {
     font-family: Inter, system-ui, sans-serif;
@@ -705,23 +707,42 @@ fetch('https://nowcast-eu.github.io/Spain/FlourishSimplified.json')
   })
   .catch(err => console.error('Map load error:', err));
 
+// --- D3-based map renderer for GeoJSON polygons ---
 function renderMap(winners = {}) {
   if (!mapData) return;
 
-  // Basic SVG setup
   const width = 600, height = 700;
-  const svgParts = [`<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`];
 
-  mapData.features.forEach(f => {
-    const name = f.properties.name;
-    const color = winners[name] ? PARTY_COLORS[winners[name]] : '#ccc';
-    // Assume each feature has a precomputed SVG path (simplify if needed)
-    const d = f.path || f.properties.path; // your JSON should store "path" strings
-    svgParts.push(`<path d="${d}" fill="${color}" stroke="#fff" stroke-width="0.5" data-name="${name}"></path>`);
-  });
+  // 🗺️ Use a Mercator projection scaled to fit your GeoJSON
+  const projection = d3.geoMercator()
+    .fitSize([width, height], mapData);
 
-  svgParts.push('</svg>');
-  document.getElementById('map-svg').innerHTML = svgParts.join('');
+  const pathGenerator = d3.geoPath().projection(projection);
+
+  // Create SVG container
+  const svg = d3.create("svg")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("xmlns", "http://www.w3.org/2000/svg");
+
+  // Draw each constituency
+  svg.selectAll("path")
+    .data(mapData.features)
+    .join("path")
+    .attr("d", pathGenerator)
+    .attr("fill", d => {
+      const name = d.properties.name;
+      const winner = winners[name];
+      return winner ? PARTY_COLORS[winner] : "#ccc";
+    })
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 0.5)
+    .attr("data-name", d => d.properties.name)
+    .on("mouseenter", function() { d3.select(this).attr("opacity", 0.8); })
+    .on("mouseleave", function() { d3.select(this).attr("opacity", 1); });
+
+  // Clear and replace existing map
+  document.getElementById("map-svg").innerHTML = "";
+  document.getElementById("map-svg").appendChild(svg.node());
 }
 
 </script>
