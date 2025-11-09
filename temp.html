@@ -713,9 +713,11 @@ function renderMap(winners = {}) {
 
   const width = 600, height = 700;
 
-  // 🗺️ Use a Mercator projection scaled to fit your GeoJSON
-  const projection = d3.geoMercator()
-    .fitSize([width, height], mapData);
+// 🗺️ Spain: Mercator projection centered and scaled manually
+const projection = d3.geoMercator()
+  .center([-3, 40])     // roughly center of Spain
+  .scale(2500)          // adjust zoom level (increase if too small)
+  .translate([width / 2, height / 2]);
 
   const pathGenerator = d3.geoPath().projection(projection);
 
