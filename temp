@@ -253,6 +253,18 @@ tfoot td {
   }
 }
 
+#map-container {
+  margin-top: 40px;
+  text-align: center;
+}
+#map-svg svg {
+  width: 100%;
+  height: auto;
+  max-width: 600px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+}
+
 </style>
 </head>
 
@@ -304,6 +316,11 @@ tfoot td {
   </div>
   <div class="counter" id="counter">0 / 350</div>
   <div class="note">Majority = 176 seats</div>
+</div>
+
+<div id="map-container">
+  <h3>Projection map (user generated)</h3>
+  <div id="map-svg"></div>
 </div>
 
 <script>
@@ -556,6 +573,24 @@ perConst.forEach(row => {
 
   document.getElementById('total-seats').textContent=Object.values(totals).reduce((a,b)=>a+b,0);
   document.getElementById('calculate').style.background='#008500';
+
+// --- Determine the winner (largest seat share) per constituency ---
+const winners = {};
+perConst.forEach(row => {
+  let topParty = null;
+  let topShare = 0;
+  PARTIES.forEach(p => {
+    if (row[p] > topShare) {
+      topShare = row[p];
+      topParty = p;
+    }
+  });
+  winners[row.name] = topParty;
+});
+
+// Update the map colors
+renderMap(winners);
+
   updateCoalitionFromTotals(totals);
 }
 
@@ -657,7 +692,37 @@ tab2023.addEventListener("click", () => {
   }
 });
 
+// --- MAP VISUALISATION SECTION ---
 
+let mapData = null;
+
+// 1️⃣ Load the GeoJSON from GitHub once
+fetch('https://nowcast-eu.github.io/Spain/FlourishSimplified.json')
+  .then(res => res.json())
+  .then(data => {
+    mapData = data;
+    renderMap(); // initial render (using baseline winner)
+  })
+  .catch(err => console.error('Map load error:', err));
+
+function renderMap(winners = {}) {
+  if (!mapData) return;
+
+  // Basic SVG setup
+  const width = 600, height = 700;
+  const svgParts = [`<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`];
+
+  mapData.features.forEach(f => {
+    const name = f.properties.name;
+    const color = winners[name] ? PARTY_COLORS[winners[name]] : '#ccc';
+    // Assume each feature has a precomputed SVG path (simplify if needed)
+    const d = f.path || f.properties.path; // your JSON should store "path" strings
+    svgParts.push(`<path d="${d}" fill="${color}" stroke="#fff" stroke-width="0.5" data-name="${name}"></path>`);
+  });
+
+  svgParts.push('</svg>');
+  document.getElementById('map-svg').innerHTML = svgParts.join('');
+}
 
 </script>
 </body>
