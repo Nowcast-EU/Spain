@@ -746,7 +746,7 @@ const projection = d3.geoMercator()
     .join("path")
     .attr("d", pathGenerator)
     .attr("fill", d => {
-const geoName = d.properties.name;
+const geoName = d.properties.name || d.properties.Constituency || d.properties.cst_n;
 if (!geoName) console.warn("⚠️ Missing name property in feature:", d.properties);
 const winner = winners[normalizeName(geoName)];
       return winner ? PARTY_COLORS[winner] : "#ccc";
