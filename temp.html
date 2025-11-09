@@ -501,9 +501,11 @@ function updateVoteTotal(){
 }
   
 function normalizeName(str) {
+  if (!str) return "";  // prevent undefined errors
   return str
-    .normalize("NFD")                    // split accented letters
-    .replace(/[\u0300-\u036f]/g, "")     // remove accents
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
@@ -744,8 +746,9 @@ const projection = d3.geoMercator()
     .join("path")
     .attr("d", pathGenerator)
     .attr("fill", d => {
-      const geoName = d.properties.name;
-      const winner = winners[normalizeName(geoName)];
+const geoName = d.properties.name;
+if (!geoName) console.warn("⚠️ Missing name property in feature:", d.properties);
+const winner = winners[normalizeName(geoName)];
       return winner ? PARTY_COLORS[winner] : "#ccc";
     })
     .attr("stroke", "#fff")
