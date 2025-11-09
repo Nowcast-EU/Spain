@@ -703,9 +703,10 @@ fetch('https://nowcast-eu.github.io/Spain/FlourishSimplified.json')
   .then(res => res.json())
   .then(data => {
     mapData = data;
-    renderMap(); // initial render (using baseline winner)
+    // don't draw yet — wait until calculate() runs with real winners
   })
   .catch(err => console.error('Map load error:', err));
+
 
 // --- D3-based map renderer for GeoJSON polygons ---
 function renderMap(winners = {}) {
