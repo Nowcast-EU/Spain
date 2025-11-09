@@ -499,6 +499,15 @@ function updateVoteTotal(){
   });
   document.getElementById('total-votes').textContent=sum.toFixed(1)+'%';
 }
+  
+function normalizeName(str) {
+  return str
+    .normalize("NFD")                    // split accented letters
+    .replace(/[\u0300-\u036f]/g, "")     // remove accents
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 /* ---- Proportional swing ---- */
 function computeConstituencyShares(){
@@ -587,7 +596,7 @@ perConst.forEach(row => {
       topParty = p;
     }
   });
-  winners[row.name] = topParty;
+winners[normalizeName(row.name)] = topParty;
 });
 
 // Update the map colors
@@ -735,8 +744,8 @@ const projection = d3.geoMercator()
     .join("path")
     .attr("d", pathGenerator)
     .attr("fill", d => {
-      const name = d.properties.name;
-      const winner = winners[name];
+      const geoName = d.properties.name;
+      const winner = winners[normalizeName(geoName)];
       return winner ? PARTY_COLORS[winner] : "#ccc";
     })
     .attr("stroke", "#fff")
