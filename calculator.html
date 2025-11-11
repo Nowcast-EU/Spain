@@ -601,13 +601,13 @@ perConst.forEach(row => {
 }
 
 /* ---- Reset ---- */
-resetBtn.addEventListener('click', ()=>{
+document.getElementById('reset').addEventListener('click', ()=>{
   parties.forEach((p,i)=>{
     const input = document.getElementById(`votes-${i}`);
-    input.value = defaultVotes[i].toFixed(1);
+    input.value = DEFAULTS[p.name].toFixed(1);
   });
-  updateVoteTotal();  // ✅ immediately refresh the footer total
-  calculate();         // ✅ then recalculate seats + coalition
+  updateVoteTotal();  // refresh footer totals immediately
+  calculate();         // recalc seats + coalition builder
 });
 document.getElementById('calculate').addEventListener('click',calculate);
 renderTable();
