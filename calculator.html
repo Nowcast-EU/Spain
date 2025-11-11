@@ -433,6 +433,66 @@ const parties = PARTIES.map(name => ({
   final: 0
 }));
 
+  // --- UNIVERSAL INPUT BEHAVIOUR FOR ALL CALCULATORS ---
+function attachInputBehaviour(calculate, updateVoteTotal) {
+  const inputs = document.querySelectorAll('.input-wrapper input');
+
+  inputs.forEach((input, index) => {
+    let originalValue = input.value;
+    let hasChanged = false;
+
+    // When user focuses: store old value, clear visually (but keep logical value)
+    input.addEventListener('focus', () => {
+      originalValue = input.value;
+      input.value = ''; // visually empty
+      hasChanged = false;
+    });
+
+    // When user types: mark changed and update totals
+    input.addEventListener('input', () => {
+      hasChanged = true;
+      updateVoteTotal();
+      const calcBtn = document.getElementById('calculate');
+      if (calcBtn) calcBtn.style.background = '#ffa500'; // optional UI cue
+    });
+
+    // When user leaves field
+    input.addEventListener('blur', () => {
+      // restore old if blank or invalid
+      if (input.value === '' || isNaN(parseFloat(input.value))) {
+        input.value = originalValue;
+      } else {
+        input.value = parseFloat(input.value).toFixed(1); // format to one decimal
+      }
+
+      // only recalc if changed
+      if (hasChanged && parseFloat(input.value) !== parseFloat(originalValue)) {
+        calculate();
+      }
+    });
+
+    // When user presses Enter
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+
+        if (input.value === '' || isNaN(parseFloat(input.value))) {
+          input.value = originalValue;
+        } else {
+          input.value = parseFloat(input.value).toFixed(1);
+        }
+
+        // move to next input
+        if (inputs[index + 1]) {
+          inputs[index + 1].focus();
+        } else {
+          inputs[0].focus(); // loop to first input
+        }
+      }
+    });
+  });
+}
+
 /* ---- Render table ---- */
 function renderTable(){
   const tbody=document.getElementById('tbody');
@@ -450,26 +510,7 @@ function renderTable(){
       <td class="diff-column" id="diff-${i}">—</td>
     </tr>`).join('');
 
-  const inputs=document.querySelectorAll('.input-wrapper input');
-  inputs.forEach((input,index)=>{
-    let originalValue = input.value;
-
-    input.addEventListener('focus',()=>{
-      originalValue = input.value;
-      input.value='';
-    });
-    input.addEventListener('blur',()=>{
-      if(input.value==='') input.value = originalValue;
-    });
-
-    input.addEventListener('keydown',e=>{
-      if(e.key==='Enter'){e.preventDefault();if(inputs[index+1])inputs[index+1].focus();}
-    });
-    input.addEventListener('input',()=>{
-      updateVoteTotal();
-      document.getElementById('calculate').style.background='#ffa500';
-    });
-  });
+  attachInputBehaviour(calculate, updateVoteTotal);
   updateVoteTotal();
 }
 
@@ -560,9 +601,13 @@ perConst.forEach(row => {
 }
 
 /* ---- Reset ---- */
-document.getElementById('reset').addEventListener('click',()=>{
-  parties.forEach((p,i)=>document.getElementById(`votes-${i}`).value=DEFAULTS[p.name].toFixed(1));
-  calculate();
+resetBtn.addEventListener('click', ()=>{
+  parties.forEach((p,i)=>{
+    const input = document.getElementById(`votes-${i}`);
+    input.value = defaultVotes[i].toFixed(1);
+  });
+  updateVoteTotal();  // ✅ immediately refresh the footer total
+  calculate();         // ✅ then recalculate seats + coalition
 });
 document.getElementById('calculate').addEventListener('click',calculate);
 renderTable();
