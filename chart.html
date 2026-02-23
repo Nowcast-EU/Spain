@@ -75,71 +75,74 @@ const width = svg.clientWidth;
 const height = svg.clientHeight;
 const centerX = width / 2;
 const centerY = height * 0.9;
+
+// Decide number of rows based on total seats
+const rows = Math.ceil(Math.sqrt(totalSeats) / 1.3);
 const maxRadius = Math.min(width / 2, height * 0.85);
 
-let seatPositions = [];
-let rows = Math.ceil(Math.sqrt(totalSeats));
-let seatsPlaced = 0;
+// Distribute seats proportionally across rows
+let rowSeatCounts = [];
+let totalWeight = 0;
 
-// STEP 1: Generate seat positions WITH ANGLES
-for (let row = 0; row < rows; row++) {
-  const radius = maxRadius - row * rowSpacing;
-  const circumference = Math.PI * radius;
-  const seatsInRow = Math.floor(circumference / (seatRadius * 2.5));
+for (let r = 0; r < rows; r++) {
+  totalWeight += (rows - r); // outer rows slightly larger
+}
 
-  const angleStep = Math.PI / seatsInRow;
+let remainingSeats = totalSeats;
 
-  for (let i = 0; i < seatsInRow && seatsPlaced < totalSeats; i++) {
-    const angle = Math.PI - (i + 0.5) * angleStep;
-    const x = centerX + radius * Math.cos(angle);
-    const y = centerY - radius * Math.sin(angle);
+for (let r = 0; r < rows; r++) {
+  let weight = (rows - r);
+  let seatsInRow = Math.round(totalSeats * (weight / totalWeight));
+  rowSeatCounts.push(seatsInRow);
+}
 
-    seatPositions.push({ x, y, angle });
-    seatsPlaced++;
+// Fix rounding errors
+let diff = totalSeats - rowSeatCounts.reduce((a,b)=>a+b,0);
+while (diff !== 0) {
+  for (let i = 0; i < rowSeatCounts.length && diff !== 0; i++) {
+    rowSeatCounts[i] += diff > 0 ? 1 : -1;
+    diff += diff > 0 ? -1 : 1;
   }
 }
 
-// STEP 2: Sort by ANGLE (π → 0)
-seatPositions.sort((a, b) => b.angle - a.angle);
+// Generate symmetric seat positions
+let seatPositions = [];
 
-// STEP 3: Flatten party colours
+for (let r = 0; r < rows; r++) {
+
+  const radius = maxRadius - r * rowSpacing;
+  const seatsInRow = rowSeatCounts[r];
+
+  for (let i = 0; i < seatsInRow; i++) {
+
+    const angle = Math.PI * (i + 0.5) / seatsInRow;
+
+    const x = centerX - radius * Math.cos(angle);
+    const y = centerY - radius * Math.sin(angle);
+
+    seatPositions.push({ x, y, angle });
+  }
+}
+
+// Sort by angle (left → right)
+seatPositions.sort((a,b)=> b.angle - a.angle);
+
+// Flatten party colours
 let seatColors = [];
-parties.forEach(party => {
-  for (let i = 0; i < party.seats; i++) {
+parties.forEach(party=>{
+  for(let i=0;i<party.seats;i++){
     seatColors.push(party.color);
   }
 });
 
-// STEP 4: Draw seats
-seatPositions.forEach((pos, i) => {
-  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  circle.setAttribute("cx", pos.x);
-  circle.setAttribute("cy", pos.y);
-  circle.setAttribute("r", seatRadius);
-  circle.setAttribute("fill", seatColors[i]);
+// Draw seats
+seatPositions.forEach((pos,i)=>{
+  const circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  circle.setAttribute("cx",pos.x);
+  circle.setAttribute("cy",pos.y);
+  circle.setAttribute("r",seatRadius);
+  circle.setAttribute("fill",seatColors[i]);
   svg.appendChild(circle);
-});
-
-// ==========================
-// Legend
-// ==========================
-
-const legend = document.getElementById("legend");
-
-parties.forEach(party => {
-  const item = document.createElement("div");
-  item.className = "legend-item";
-
-  const colorBox = document.createElement("div");
-  colorBox.className = "legend-color";
-  colorBox.style.background = party.color;
-
-  const label = document.createElement("span");
-  label.textContent = `${party.name} (${party.seats})`;
-
-  item.appendChild(colorBox);
-  item.appendChild(label);
-  legend.appendChild(item);
 });
 </script>
 </body>
