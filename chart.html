@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Custom Parliament Chart</title>
+<style>
+  body {
+    margin: 0;
+    background: #f2f2f2;
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  svg {
+    width: 90vw;
+    height: 80vh;
+  }
+
+  .legend {
+    position: absolute;
+    bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    font-size: 14px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-color {
+    width: 14px;
+    height: 14px;
+  }
+</style>
+</head>
+<body>
+
+<svg id="parliament"></svg>
+<div class="legend" id="legend"></div>
+
+<script>
+// ==========================
+// CUSTOMISE PARTIES HERE
+// ==========================
+
+const parties = [
+  { name: "PP", seats: 137, color: "#1f77b4" },
+  { name: "PSOE", seats: 121, color: "#e41a1c" },
+  { name: "Vox", seats: 33, color: "#66bb22" },
+  { name: "Sumar", seats: 31, color: "#e377c2" },
+  { name: "ERC", seats: 7, color: "#f39c12" },
+  { name: "Junts", seats: 7, color: "#1abc9c" },
+  { name: "EH Bildu", seats: 6, color: "#16a085" },
+  { name: "PNV", seats: 5, color: "#2ecc71" },
+  { name: "BNG", seats: 1, color: "#aec7e8" },
+  { name: "UPN", seats: 1, color: "#08306b" },
+  { name: "CCa", seats: 1, color: "#f1c40f" }
+];
+
+// ==========================
+// Layout settings (tweakable)
+// ==========================
+
+const seatRadius = 10;
+const rowSpacing = 24;
+const svg = document.getElementById("parliament");
+
+const totalSeats = parties.reduce((sum, p) => sum + p.seats, 0);
+
+const width = svg.clientWidth;
+const height = svg.clientHeight;
+const centerX = width / 2;
+const centerY = height * 0.9;
+const maxRadius = Math.min(width / 2, height * 0.85);
+
+let seatData = [];
+
+// Flatten party seat list
+parties.forEach(party => {
+  for (let i = 0; i < party.seats; i++) {
+    seatData.push(party.color);
+  }
+});
+
+// Calculate number of rows automatically
+let rows = Math.ceil(Math.sqrt(totalSeats));
+let seatsPlaced = 0;
+
+for (let row = 0; row < rows; row++) {
+  const radius = maxRadius - row * rowSpacing;
+  const circumference = Math.PI * radius;
+  const seatsInRow = Math.floor(circumference / (seatRadius * 2.5));
+
+  const angleStep = Math.PI / seatsInRow;
+
+  for (let i = 0; i < seatsInRow && seatsPlaced < totalSeats; i++) {
+    const angle = Math.PI - (i + 0.5) * angleStep;
+    const x = centerX + radius * Math.cos(angle);
+    const y = centerY - radius * Math.sin(angle);
+
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", x);
+    circle.setAttribute("cy", y);
+    circle.setAttribute("r", seatRadius);
+    circle.setAttribute("fill", seatData[seatsPlaced]);
+
+    svg.appendChild(circle);
+    seatsPlaced++;
+  }
+}
+
+// ==========================
+// Legend
+// ==========================
+
+const legend = document.getElementById("legend");
+
+parties.forEach(party => {
+  const item = document.createElement("div");
+  item.className = "legend-item";
+
+  const colorBox = document.createElement("div");
+  colorBox.className = "legend-color";
+  colorBox.style.background = party.color;
+
+  const label = document.createElement("span");
+  label.textContent = `${party.name} (${party.seats})`;
+
+  item.appendChild(colorBox);
+  item.appendChild(label);
+  legend.appendChild(item);
+});
+
+</script>
+</body>
+</html>
