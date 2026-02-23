@@ -64,10 +64,7 @@ const parties = [
   { name: "CCa", seats: 1, color: "#f1c40f" }
 ];
 
-// ==========================
-// Layout settings (tweakable)
-// ==========================
-
+// Layout settings
 const seatRadius = 10;
 const rowSpacing = 24;
 const svg = document.getElementById("parliament");
@@ -80,19 +77,11 @@ const centerX = width / 2;
 const centerY = height * 0.9;
 const maxRadius = Math.min(width / 2, height * 0.85);
 
-let seatData = [];
-
-// Flatten party seat list
-parties.forEach(party => {
-  for (let i = 0; i < party.seats; i++) {
-    seatData.push(party.color);
-  }
-});
-
-// Calculate number of rows automatically
+let seatPositions = [];
 let rows = Math.ceil(Math.sqrt(totalSeats));
 let seatsPlaced = 0;
 
+// STEP 1: Calculate ALL seat positions first
 for (let row = 0; row < rows; row++) {
   const radius = maxRadius - row * rowSpacing;
   const circumference = Math.PI * radius;
@@ -105,16 +94,31 @@ for (let row = 0; row < rows; row++) {
     const x = centerX + radius * Math.cos(angle);
     const y = centerY - radius * Math.sin(angle);
 
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("cx", x);
-    circle.setAttribute("cy", y);
-    circle.setAttribute("r", seatRadius);
-    circle.setAttribute("fill", seatData[seatsPlaced]);
-
-    svg.appendChild(circle);
+    seatPositions.push({ x, y });
     seatsPlaced++;
   }
 }
+
+// STEP 2: Sort positions LEFT → RIGHT
+seatPositions.sort((a, b) => a.x - b.x);
+
+// STEP 3: Flatten party seat colours in order
+let seatColors = [];
+parties.forEach(party => {
+  for (let i = 0; i < party.seats; i++) {
+    seatColors.push(party.color);
+  }
+});
+
+// STEP 4: Draw seats
+seatPositions.forEach((pos, i) => {
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", pos.x);
+  circle.setAttribute("cy", pos.y);
+  circle.setAttribute("r", seatRadius);
+  circle.setAttribute("fill", seatColors[i]);
+  svg.appendChild(circle);
+});
 
 // ==========================
 // Legend
@@ -137,7 +141,6 @@ parties.forEach(party => {
   item.appendChild(label);
   legend.appendChild(item);
 });
-
 </script>
 </body>
 </html>
