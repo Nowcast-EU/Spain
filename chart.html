@@ -81,7 +81,7 @@ let seatPositions = [];
 let rows = Math.ceil(Math.sqrt(totalSeats));
 let seatsPlaced = 0;
 
-// STEP 1: Calculate ALL seat positions first
+// STEP 1: Generate seat positions WITH ANGLES
 for (let row = 0; row < rows; row++) {
   const radius = maxRadius - row * rowSpacing;
   const circumference = Math.PI * radius;
@@ -94,15 +94,15 @@ for (let row = 0; row < rows; row++) {
     const x = centerX + radius * Math.cos(angle);
     const y = centerY - radius * Math.sin(angle);
 
-    seatPositions.push({ x, y });
+    seatPositions.push({ x, y, angle });
     seatsPlaced++;
   }
 }
 
-// STEP 2: Sort positions LEFT → RIGHT
-seatPositions.sort((a, b) => a.x - b.x);
+// STEP 2: Sort by ANGLE (π → 0)
+seatPositions.sort((a, b) => b.angle - a.angle);
 
-// STEP 3: Flatten party seat colours in order
+// STEP 3: Flatten party colours
 let seatColors = [];
 parties.forEach(party => {
   for (let i = 0; i < party.seats; i++) {
