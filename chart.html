@@ -61,61 +61,89 @@ const parties = [
   { name: "CCa", seats: 1, color: "#f1c40f" }
 ];
 
-const seatRadius = 10;
+const seatRadius = 9;
 const rowSpacing = 26;
+const innerEmptyRows = 2; // 👈 controls size of hollow
 
 const svg = document.getElementById("parliament");
-const totalSeats = parties.reduce((sum,p)=>sum+p.seats,0);
+
+const totalSeats = parties.reduce((s,p)=>s+p.seats,0);
 
 const width = svg.clientWidth;
 const height = svg.clientHeight;
 
 const centerX = width/2;
-const centerY = height*0.9;
+const centerY = height*0.92;
 
-const maxRadius = Math.min(width/2, height*0.85);
+const maxRadius = Math.min(width/2, height*0.9);
 
-// --- Generate full geometric layout ---
+// --- Determine number of rows dynamically ---
+
+let rows = Math.ceil(Math.sqrt(totalSeats) / 1.15);
+
+const innerRadius = rowSpacing * innerEmptyRows;
+const outerRadius = maxRadius;
+
+// --- Calculate seat distribution by true arc length ---
+
+let radii = [];
+let circumferenceWeights = [];
+let weightTotal = 0;
+
+for (let r = 0; r < rows; r++) {
+  let radius = outerRadius - r*rowSpacing;
+  if (radius <= innerRadius) break;
+  radii.push(radius);
+  let weight = Math.PI * radius;
+  circumferenceWeights.push(weight);
+  weightTotal += weight;
+}
+
+// Distribute seats proportionally
+let rowSeatCounts = circumferenceWeights.map(w =>
+  Math.floor(totalSeats * (w / weightTotal))
+);
+
+// Fix rounding drift
+let assigned = rowSeatCounts.reduce((a,b)=>a+b,0);
+while (assigned < totalSeats) {
+  for (let i=0;i<rowSeatCounts.length && assigned<totalSeats;i++){
+    rowSeatCounts[i]++;
+    assigned++;
+  }
+}
+while (assigned > totalSeats) {
+  for (let i=rowSeatCounts.length-1;i>=0 && assigned>totalSeats;i--){
+    if(rowSeatCounts[i]>0){
+      rowSeatCounts[i]--;
+      assigned--;
+    }
+  }
+}
+
+// --- Generate seat positions (true π span) ---
 
 let seatPositions = [];
-let estimatedRows = Math.ceil(Math.sqrt(totalSeats));
 
-for (let r = 0; r < estimatedRows; r++) {
+for (let r = 0; r < radii.length; r++) {
 
-  const radius = maxRadius - r*rowSpacing;
-
-  if (radius <= rowSpacing) break; // preserve hollow
-
-  const seatsInRow = Math.floor(Math.PI * radius / (seatRadius*2.4));
-
-  const angleStep = Math.PI / seatsInRow;
+  const radius = radii[r];
+  const seatsInRow = rowSeatCounts[r];
 
   for (let i = 0; i < seatsInRow; i++) {
 
-    const angle = Math.PI - (i+0.5)*angleStep;
-
-    const x = centerX + radius*Math.cos(angle);
-    const y = centerY - radius*Math.sin(angle);
+    const angle = Math.PI * (i / (seatsInRow - 1)); 
+    const x = centerX - radius * Math.cos(angle);
+    const y = centerY - radius * Math.sin(angle);
 
     seatPositions.push({x,y,angle});
   }
 }
 
-// --- Sort left → right (π to 0) ---
-
+// Sort LEFT (π) → RIGHT (0)
 seatPositions.sort((a,b)=> b.angle - a.angle);
 
-// --- Trim symmetrically if too many seats ---
-
-if (seatPositions.length > totalSeats) {
-
-  const excess = seatPositions.length - totalSeats;
-  const trimStart = Math.floor(excess/2);
-  seatPositions = seatPositions.slice(trimStart, trimStart + totalSeats);
-}
-
-// --- Assign colours in party order (LEFT = first party) ---
-
+// Flatten party colours
 let seatColors = [];
 parties.forEach(p=>{
   for(let i=0;i<p.seats;i++){
@@ -123,17 +151,13 @@ parties.forEach(p=>{
   }
 });
 
-// --- Draw ---
-
+// Draw
 seatPositions.forEach((pos,i)=>{
-
   const circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
-
   circle.setAttribute("cx",pos.x);
   circle.setAttribute("cy",pos.y);
   circle.setAttribute("r",seatRadius);
   circle.setAttribute("fill",seatColors[i]);
-
   svg.appendChild(circle);
 });
 
