@@ -61,9 +61,9 @@ const parties = [
   { name: "CCa", seats: 1, color: "#f1c40f" }
 ];
 
-const seatRadius = 9;
-const rowSpacing = 26;
-const innerEmptyRows = 2; // 👈 controls size of hollow
+const seatRadius = 11;
+const rowSpacing = 22;
+const innerRadius = maxRadius * 0.4;
 
 const svg = document.getElementById("parliament");
 
@@ -81,7 +81,6 @@ const maxRadius = Math.min(width/2, height*0.9);
 
 let rows = Math.ceil(Math.sqrt(totalSeats) / 1.15);
 
-const innerRadius = rowSpacing * innerEmptyRows;
 const outerRadius = maxRadius;
 
 // --- Calculate seat distribution by true arc length ---
@@ -141,7 +140,7 @@ for (let r = 0; r < radii.length; r++) {
 }
 
 // Sort LEFT (π) → RIGHT (0)
-seatPositions.sort((a,b)=> b.angle - a.angle);
+seatPositions.sort((a,b)=> a.angle - b.angle);
 
 // Flatten party colours
 let seatColors = [];
