@@ -61,24 +61,18 @@ const parties = [
   { name: "CCa", seats: 1, color: "#f1c40f" }
 ];
 
-const seatRadius = 10;
-const seatGap = 4;   // 👈 NEW
+const seatGap = 4;   // spacing between seats
 
 const svg = document.getElementById("parliament");
-
 const totalSeats = parties.reduce((s,p)=>s+p.seats,0);
-
 const width = svg.clientWidth;
 const height = svg.clientHeight;
-
 const centerX = width/2;
 const centerY = height*0.92;
-
 const maxRadius = Math.min(width/2, height*0.9);
-
-// ✅ NOW define innerRadius (after maxRadius exists)
 const innerRadius = maxRadius * 0.4;
 
+// Determine rows
 let rows = Math.ceil(Math.sqrt(totalSeats) / 1.15);
 const outerRadius = maxRadius;
 
@@ -87,7 +81,7 @@ let circumferenceWeights = [];
 let weightTotal = 0;
 
 for (let r = 0; r < rows; r++) {
-  const rowSpacing = (seatRadius * 2) + seatGap;
+  const rowSpacing = 20; // temporary, will scale seats
   let radius = outerRadius - r * rowSpacing;
   if (radius <= innerRadius) break;
   radii.push(radius);
@@ -96,19 +90,18 @@ for (let r = 0; r < rows; r++) {
   weightTotal += weight;
 }
 
+// Allocate seats per row
 let rowSeatCounts = circumferenceWeights.map(w =>
   Math.floor(totalSeats * (w / weightTotal))
 );
 
 let assigned = rowSeatCounts.reduce((a,b)=>a+b,0);
-
 while (assigned < totalSeats) {
   for (let i=0;i<rowSeatCounts.length && assigned<totalSeats;i++){
     rowSeatCounts[i]++;
     assigned++;
   }
 }
-
 while (assigned > totalSeats) {
   for (let i=rowSeatCounts.length-1;i>=0 && assigned>totalSeats;i--){
     if(rowSeatCounts[i]>0){
@@ -118,36 +111,7 @@ while (assigned > totalSeats) {
   }
 }
 
-let seatPositions = [];
-
-for (let r = 0; r < radii.length; r++) {
-
-  const radius = radii[r];
-  const seatsInRow = rowSeatCounts[r];
-
-  for (let i = 0; i < seatsInRow; i++) {
-
-const arcLengthPerSeat = (seatRadius * 2) + seatGap;
-const angleStep = arcLengthPerSeat / radius;
-
-const startAngle = 0;
-const endAngle = Math.PI;
-
-const totalArc = (seatsInRow - 1) * angleStep;
-const offset = (Math.PI - totalArc) / 2;
-
-const angle = offset + i * angleStep;
-    
-    const x = centerX - radius * Math.cos(angle);
-    const y = centerY - radius * Math.sin(angle);
-
-    seatPositions.push({x,y,angle});
-  }
-}
-
-// LEFT → RIGHT order
-seatPositions.sort((a,b)=> a.angle - b.angle);
-
+// Generate seat colors
 let seatColors = [];
 parties.forEach(p=>{
   for(let i=0;i<p.seats;i++){
@@ -155,13 +119,43 @@ parties.forEach(p=>{
   }
 });
 
-seatPositions.forEach((pos,i)=>{
-  const circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
-  circle.setAttribute("cx",pos.x);
-  circle.setAttribute("cy",pos.y);
-  circle.setAttribute("r",seatRadius);
-  circle.setAttribute("fill",seatColors[i]);
-  svg.appendChild(circle);
+// Draw seats
+let seatIndex = 0;
+for (let r = 0; r < radii.length; r++) {
+  const radius = radii[r];
+  const seatsInRow = rowSeatCounts[r];
+
+  // Calculate dynamic seat radius to make edges flush
+  const angleStep = Math.PI / (seatsInRow - 1);
+  const rowSeatRadius = Math.min(10, (radius * angleStep - seatGap)/2);
+
+  for (let i = 0; i < seatsInRow; i++) {
+    const angle = i * angleStep;
+    const x = centerX - radius * Math.cos(angle);
+    const y = centerY - radius * Math.sin(angle);
+
+    const circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    circle.setAttribute("cx", x);
+    circle.setAttribute("cy", y);
+    circle.setAttribute("r", rowSeatRadius);
+    circle.setAttribute("fill", seatColors[seatIndex]);
+    svg.appendChild(circle);
+
+    seatIndex++;
+  }
+}
+
+// Draw legend
+const legendDiv = document.getElementById("legend");
+parties.forEach(p=>{
+  const item = document.createElement("div");
+  item.className = "legend-item";
+  const colorBox = document.createElement("div");
+  colorBox.className = "legend-color";
+  colorBox.style.backgroundColor = p.color;
+  item.appendChild(colorBox);
+  item.appendChild(document.createTextNode(`${p.name} (${p.seats})`));
+  legendDiv.appendChild(item);
 });
 
 </script>
