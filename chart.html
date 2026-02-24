@@ -62,7 +62,7 @@ const parties = [
 ];
 
 const seatRadius = 10;
-const rowSpacing = 21;
+const seatGap = 4;   // 👈 NEW
 
 const svg = document.getElementById("parliament");
 
@@ -87,7 +87,8 @@ let circumferenceWeights = [];
 let weightTotal = 0;
 
 for (let r = 0; r < rows; r++) {
-  let radius = outerRadius - r*rowSpacing;
+  const rowSpacing = (seatRadius * 2) + seatGap;
+  let radius = outerRadius - r * rowSpacing;
   if (radius <= innerRadius) break;
   radii.push(radius);
   let weight = Math.PI * radius;
@@ -126,7 +127,17 @@ for (let r = 0; r < radii.length; r++) {
 
   for (let i = 0; i < seatsInRow; i++) {
 
-    const angle = Math.PI * (i / (seatsInRow - 1)); 
+const arcLengthPerSeat = (seatRadius * 2) + seatGap;
+const angleStep = arcLengthPerSeat / radius;
+
+const startAngle = 0;
+const endAngle = Math.PI;
+
+const totalArc = (seatsInRow - 1) * angleStep;
+const offset = (Math.PI - totalArc) / 2;
+
+const angle = offset + i * angleStep;
+    
     const x = centerX - radius * Math.cos(angle);
     const y = centerY - radius * Math.sin(angle);
 
