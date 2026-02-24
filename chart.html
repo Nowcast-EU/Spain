@@ -63,7 +63,6 @@ const parties = [
 
 const seatRadius = 11;
 const rowSpacing = 22;
-const innerRadius = maxRadius * 0.4;
 
 const svg = document.getElementById("parliament");
 
@@ -77,13 +76,11 @@ const centerY = height*0.92;
 
 const maxRadius = Math.min(width/2, height*0.9);
 
-// --- Determine number of rows dynamically ---
+// ✅ NOW define innerRadius (after maxRadius exists)
+const innerRadius = maxRadius * 0.4;
 
 let rows = Math.ceil(Math.sqrt(totalSeats) / 1.15);
-
 const outerRadius = maxRadius;
-
-// --- Calculate seat distribution by true arc length ---
 
 let radii = [];
 let circumferenceWeights = [];
@@ -98,19 +95,19 @@ for (let r = 0; r < rows; r++) {
   weightTotal += weight;
 }
 
-// Distribute seats proportionally
 let rowSeatCounts = circumferenceWeights.map(w =>
   Math.floor(totalSeats * (w / weightTotal))
 );
 
-// Fix rounding drift
 let assigned = rowSeatCounts.reduce((a,b)=>a+b,0);
+
 while (assigned < totalSeats) {
   for (let i=0;i<rowSeatCounts.length && assigned<totalSeats;i++){
     rowSeatCounts[i]++;
     assigned++;
   }
 }
+
 while (assigned > totalSeats) {
   for (let i=rowSeatCounts.length-1;i>=0 && assigned>totalSeats;i--){
     if(rowSeatCounts[i]>0){
@@ -119,8 +116,6 @@ while (assigned > totalSeats) {
     }
   }
 }
-
-// --- Generate seat positions (true π span) ---
 
 let seatPositions = [];
 
@@ -139,10 +134,9 @@ for (let r = 0; r < radii.length; r++) {
   }
 }
 
-// Sort LEFT (π) → RIGHT (0)
+// LEFT → RIGHT order
 seatPositions.sort((a,b)=> a.angle - b.angle);
 
-// Flatten party colours
 let seatColors = [];
 parties.forEach(p=>{
   for(let i=0;i<p.seats;i++){
@@ -150,7 +144,6 @@ parties.forEach(p=>{
   }
 });
 
-// Draw
 seatPositions.forEach((pos,i)=>{
   const circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
   circle.setAttribute("cx",pos.x);
