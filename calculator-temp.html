@@ -1485,7 +1485,7 @@ perConst.forEach(row => {
   PARTIES.forEach(p => totalVotes += sVotes[p] || 0);
 
   // 👇 Apply a constituency-level threshold (e.g. 3% of local valid votes)
-  const validParties = PARTIES.filter(p => (sVotes[p] || 0) >= 0.03 * totalVotes);
+const validParties = PARTIES.filter(p => p !== "OTH" && (sVotes[p] || 0) >= 0.03 * totalVotes);
 
   // 👇 Allocate seats only among those parties
   const s = dhondtSeats(sVotes, CONSTITUENCY_SEATS[row.name] || 6, nationalVotes, validParties);
@@ -1576,7 +1576,7 @@ document.getElementById('randomise').addEventListener('click', () => {
     "PNV":   [0,  2],
     "BNG":   [0,  2],
     "Cca":   [0,  1],
-    "UPN":   [0,  1],
+    "UPN":   [0,  0.7],
   };
 
   const TARGET_TOTAL = 97;
