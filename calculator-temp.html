@@ -1231,7 +1231,7 @@ function renderTable() {
   const tbody = document.getElementById('tbody');
 
 tbody.innerHTML = parties.map((p, i) => {
-  // 🟩 Skip OTH for now — we’ll insert it manually after Podem
+  // Skip OTH — we'll insert it manually at the end
   if (p.name === "OTH") return "";
 
   let row = `
@@ -1239,26 +1239,23 @@ tbody.innerHTML = parties.map((p, i) => {
       <td class="party-column" style="--party-color:${p.color}">${p.name}</td>
       <td class="ge2024-column">${p.ge2024.toFixed(1)}%</td>
       <td>
-        ${p.name === "OTH" ? `
-          <div class="input-wrapper">
-            <input type="number" id="votes-${i}" value="${p.votes.toFixed(1)}" disabled>
-            <span class="percent-sign">%</span>
-          </div>
-        ` : `
-          <div class="input-wrapper">
-            <input type="number" id="votes-${i}" value="${p.votes.toFixed(1)}" min="0" max="100" step="0.1">
-            <span class="percent-sign">%</span>
-          </div>
-        `}
+        <div class="input-wrapper">
+          <input type="number" id="votes-${i}" value="${p.votes.toFixed(1)}" min="0" max="100" step="0.1">
+          <span class="percent-sign">%</span>
+        </div>
       </td>
       <td class="seats-column" id="seats-${i}">—</td>
       <td class="diff-column" id="diff-${i}">—</td>
     </tr>
   `;
 
-  // --- Insert OTH row right after Podem ---
-  if (p.name === "Podem") {
-    // find OTH’s index
+  // Divider between SALF and ERC
+  if (p.name === "SALF") {
+    row += `<tr class="divider-row"><td colspan="5"><i>Regionalist parties</i></td></tr>`;
+  }
+
+  // Append OTH after UPN (last party before OTH)
+  if (p.name === "UPN") {
     const othIndex = parties.findIndex(x => x.name === "OTH");
     const oth = parties[othIndex];
     if (oth) {
@@ -1277,9 +1274,6 @@ tbody.innerHTML = parties.map((p, i) => {
         </tr>
       `;
     }
-
-    // now add the divider row for Scotland
-    row += `<tr class="divider-row"><td colspan="5"><i>Regionalist parties</i></td></tr>`;
   }
 
   return row;
