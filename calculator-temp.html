@@ -1563,45 +1563,42 @@ document.getElementById('reset').addEventListener('click', () => {
 /* ---- Randomise ---- */
 document.getElementById('randomise').addEventListener('click', () => {
 
-  // Helper: normalise n random values to exactly 'total', displayed as percentages
-  function randomNormalised(n, total) {
-    const raws = Array.from({length: n}, () => Math.random());
-    const sum = raws.reduce((a, b) => a + b, 0);
-    // Divide each by sum (normalise to 1.0), multiply by total (e.g. 96)
-    // then multiply by 10, floor, divide by 10 to get clean 1dp values
-    const scaled = raws.map(v => Math.floor((v / sum) * total * 10) / 10);
-    // The last value takes exactly whatever is left to guarantee the total
-    const runningSum = scaled.slice(0, -1).reduce((a, b) => a + b, 0);
-    scaled[scaled.length - 1] = Math.round((total - runningSum) * 10) / 10;
-    return scaled;
-  }
+  const RAND_RANGES = {
+    "PP":    [10, 70],
+    "PSOE":  [10, 70],
+    "Vox":   [10,  70],
+    "Sumar": [10,  70],
+    "Podem": [10,  70],
+    "SALF":  [0,  30],
+    "ERC":   [0,  4],
+    "JxCat": [0,  4],
+    "EHB":   [0,  3],
+    "PNV":   [0,  2],
+    "BNG":   [0,  2],
+    "Cca":   [0,  1],
+    "UPN":   [0,  1],
+  };
 
-  // --- GB main parties: PP, PSOE, Vox, Sumar, Podem — guaranteed total of 96 ---
-  const gbParties = ["PP", "PSOE", "Vox", "Sumar", "Podem"];
-  const gbValues = randomNormalised(gbParties.length, 90);
-  gbParties.forEach((name, j) => {
-    const i = parties.findIndex(p => p.name === name);
-    const input = document.getElementById(`votes-${i}`);
-    if (input) input.value = gbValues[j].toFixed(1);
+  const TARGET_TOTAL = 97;
+
+  // Generate a raw random value within each party's own range
+  const editableParties = parties.filter(p => p.name !== "OTH");
+  const raws = editableParties.map(p => {
+    const [min, max] = RAND_RANGES[p.name] || [1, 20];
+    return min + Math.random() * (max - min);
   });
 
-  // --- SALF: random between 5.0 and 70.0 ---
-  const snpIndex = parties.findIndex(p => p.name === "SALF");
-  const snpInput = document.getElementById(`votes-${snpIndex}`);
-  if (snpInput) snpInput.value = (Math.floor((5 + Math.random() * 50) * 10) / 10).toFixed(1);
+  // Normalise so they sum to TARGET_TOTAL, keeping 1dp
+  const sum = raws.reduce((a, b) => a + b, 0);
+  const scaled = raws.map(v => Math.floor((v / sum) * TARGET_TOTAL * 10) / 10);
+  const runningSum = scaled.slice(0, -1).reduce((a, b) => a + b, 0);
+  scaled[scaled.length - 1] = Math.round((TARGET_TOTAL - runningSum) * 10) / 10;
 
-  // --- ERC: random between 5.0 and 70.0 ---
-  const plcIndex = parties.findIndex(p => p.name === "ERC");
-  const plcInput = document.getElementById(`votes-${plcIndex}`);
-  if (plcInput) plcInput.value = (Math.floor((5 + Math.random() * 50) * 10) / 10).toFixed(1);
-
-  // --- NI parties: JxCat, EHB, ALL, BNG, PNV, Cca — guaranteed total of 96 ---
-  const niParties = ["JxCat", "EHB", "ALL", "BNG", "PNV", "Cca"];
-  const niValues = randomNormalised(niParties.length, 96);
-  niParties.forEach((name, j) => {
-    const i = parties.findIndex(p => p.name === name);
+  // Write values into inputs
+  editableParties.forEach((p, j) => {
+    const i = parties.findIndex(q => q.name === p.name);
     const input = document.getElementById(`votes-${i}`);
-    if (input) input.value = niValues[j].toFixed(1);
+    if (input) input.value = scaled[j].toFixed(1);
   });
 
   // --- Vote concentration: random displayed value between -50.0 and 50.0 ---
