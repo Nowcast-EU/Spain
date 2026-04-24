@@ -1647,7 +1647,7 @@ function renderCoalition(t){
   const totalSeats = Object.values(t).reduce((a,b)=>a+b,0);
   const sfnSeats = t["JxCat"] || 0;
   const majoritySeats = Math.ceil((totalSeats - sfnSeats) / 2);
-  document.querySelector(".note").textContent = `Note: functional majority = ${majoritySeats} seats`;
+  document.querySelector(".note").textContent = `Majority = 176 seats`;
   
 overlay.innerHTML = "";
 legend.innerHTML = "";
