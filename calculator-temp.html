@@ -671,14 +671,14 @@ tfoot td {
 #constituency-map {
   width: 100%;
   max-width: 100%;        /* add this */
-  height: 520px;
+  height: 350px;
   box-sizing: border-box; /* add this */
   overflow: hidden;       /* add this */
 }
 
 @media (min-width: 1024px) {
   #constituency-map {
-    height: 700px;
+    height: 400px;
     max-width: 700px;
     margin: 0 auto;
   }
@@ -1986,10 +1986,11 @@ helpBtn.addEventListener("click", () => {
   }
   function sty(lu){ return function(f){ var w=lu[f.properties.NAME]; return {fillColor:w?(PARTY_COLORS[w]||'#ccc'):'#ccc',fillOpacity:0.82,color:'#fff',weight:0.6}; }; }
   function initMap() {
-    var defaultZoom = window.innerWidth < 768 ? 5 : 6;
+    var defaultZoom = window.innerWidth < 768 ? 5 : 5.5;
     map = L.map('constituency-map',{
     center:[40.5,-3.7],
     zoom:defaultZoom,
+    zoomSnap: 0,
     minZoom:4,
     maxZoom:12,
     maxBounds:[
