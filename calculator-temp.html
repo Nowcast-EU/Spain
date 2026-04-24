@@ -1903,15 +1903,7 @@ function partyColor(partyCode) {
 const winnerHTML = `<span class="party coloured" style="--party-color:${partyColor(winner.name)}">${winnerAlias}</span>`;
 const incumbentHTML = incumbent ? `<span class="party coloured" style="--party-color:${partyColor(incumbent)}">${incumbentAlias}</span>` : "";
 
-if (incumbent) {
-  if (incumbent === winner.name) {
-    winnerText.innerHTML = `${winnerHTML} HOLD`;
-  } else {
-    winnerText.innerHTML = `${winnerHTML} GAIN from ${incumbentHTML}`;
-  }
-} else {
-  winnerText.innerHTML = `${name}: ${winnerHTML}`;
-}
+winnerText.innerHTML = "";
 }  
 
 /* ---- Floating GB→UK Mini Calculator ---- */
