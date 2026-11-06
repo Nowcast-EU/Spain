@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spanish projection dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#f6f6f4; --card:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#dcdcd6; --accent:#1f6fb2; --out:#b9bdc4; --marker:#d6336c; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width:1200px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:15px; margin:0 0 10px; }
+  textarea { width:100%; min-height:130px; font:12.5px/1.4 ui-monospace, Menlo, Consolas, monospace; border:1px solid var(--line); border-radius:6px; padding:8px; resize:vertical; }
+  .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:10px; }
+  label { font-size:13px; color:var(--muted); display:flex; gap:6px; align-items:center; }
+  select, button { font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); cursor:pointer; }
+  button { cursor:pointer; }
+  .msg { font-size:13px; margin-top:8px; min-height:18px; }
+  .msg.err { color:#b42318; }
+  .msg.ok { color:var(--muted); }
+  .chartbox { position:relative; height:480px; }
+  .key { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--muted); margin-bottom:8px; }
+  .key span.sw { display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
+  .key span.mk { display:inline-block; width:18px; height:0; border-top:3px solid var(--marker); vertical-align:3px; margin-right:5px; }
+  .stats { display:flex; gap:24px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin-top:8px; }
+  .stats b { color:var(--ink); }
+  details { font-size:13px; color:var(--muted); margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Spanish election projection</h1>
+  <p class="sub">Paste your table, pick a party, and compare its vote share in each constituency with the effective threshold.</p>
+
+  <div class="card">
+    <h2>1. Paste data</h2>
+    <textarea id="input" spellcheck="false" placeholder="Paste straight from a spreadsheet or CSV.&#10;&#10;Wide format:  Constituency | Seats | PP | PSOE | Vox | ...&#10;Long format:  Constituency | Seats | Party | Vote share"></textarea>
+    <div class="row">
+      <button class="primary" id="load">Load table</button>
+      <button id="example">Load dummy example</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <details>
+      <summary>Accepted formats</summary>
+      <p><b>Wide:</b> first column = constituency, second = seats, every other column = a party's vote share (header row = party names).<br>
+      <b>Long:</b> header row containing columns matching "constituency/province", "seats/magnitude", "party" and "share/vote".<br>
+      Tab, semicolon or comma separated. Values can have a % sign; decimal commas work with tab or semicolon separators. If every value in the table is 1 or below, they are treated as fractions and multiplied by 100.</p>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>2. Vote share vs effective threshold</h2>
+    <div class="row" style="margin-top:0;margin-bottom:10px">
+      <label>Party <select id="party"></select></label>
+      <label>Sort by
+        <select id="sort">
+          <option value="input">Input order</option>
+          <option value="mag-desc">Magnitude (largest first)</option>
+          <option value="mag-asc">Magnitude (smallest first)</option>
+          <option value="share-desc">Vote share (highest first)</option>
+          <option value="margin-desc">Margin over threshold (highest first)</option>
+          <option value="margin-asc">Margin over threshold (lowest first)</option>
+          <option value="name">Name (A–Z)</option>
+        </select>
+      </label>
+    </div>
+    <div class="key">
+      <span><span class="sw" style="background:var(--accent)"></span>At or above threshold</span>
+      <span><span class="sw" style="background:var(--out)"></span>Below threshold</span>
+      <span><span class="mk"></span>Effective threshold = 75% ÷ (M + 1)</span>
+    </div>
+    <div class="chartbox"><canvas id="chart"></canvas></div>
+    <div class="stats" id="stats"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const state = { rows: [], parties: [] };   // rows: {name, seats, shares:{party:value}}
+  let chart = null;
+
+  // Effective threshold (%) for a district magnitude M: 75 / (M + 1)
+  const threshold = m => 75 / (m + 1);
+
+  const EXAMPLE = [
+    ["Constituency","Seats","PP","PSOE","Vox"],
+    ["Madrid","37","33.1","27.4","14.2"],
+    ["Barcelona","32","14.8","26.9","7.6"],
+    ["Valencia","16","31.5","26.2","15.9"],
+    ["Soria","2","38.4","27.1","10.8"],
+    ["Teruel","3","34.2","29.0","12.5"],
+    ["Ceuta","1","32.0","24.0","28.0"]
+  ].map(r => r.join("\t")).join("\n");
+
+  function setMsg(text, err) { const m = $("msg"); m.textContent = text; m.className = "msg " + (err ? "err" : "ok"); }
+
+  function detectDelim(text) {
+    const first = text.split(/\r?\n/).find(l => l.trim()) || "";
+    if (first.includes("\t")) return "\t";
+    if (first.includes(";")) return ";";
+    return ",";
+  }
+
+  // Minimal CSV-ish splitter that respects double quotes
+  function splitLine(line, d) {
+    const out = []; let cur = "", q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { if (q && line[i+1] === '"') { cur += '"'; i++; } else q = !q; }
+      else if (c === d && !q) { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+
+  function num(s) {
+    if (s == null) return NaN;
+    let t = String(s).replace(/%/g, "").replace(/\s/g, "");
+    if (t === "" || t === "-" || t === "–") return NaN;
+    if (t.includes(",") && !t.includes(".")) t = t.replace(",", ".");
+    else t = t.replace(/,/g, "");
+    const v = parseFloat(t);
+    return isFinite(v) ? v : NaN;
+  }
+
+  function parse(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) throw new Error("Need a header row and at least one data row.");
+    const d = detectDelim(text);
+    const grid = lines.map(l => splitLine(l, d));
+    const header = grid[0];
+    const body = grid.slice(1);
+
+    const find = re => header.findIndex(h => re.test(h));
+    const iParty = find(/party|partido/i);
+    const iShare = find(/share|vote|voto|%/i);
+    const rows = []; let parties = [];
+
+    if (iParty > -1 && iShare > -1 && iParty !== iShare) {
+      // long format
+      let iName = find(/constit|provinc|circ|distrit|district|name/i); if (iName < 0) iName = 0;
+      let iSeats = find(/seat|magnit|esca|esc\b|m$/i); if (iSeats < 0) iSeats = 1;
+      const map = new Map();
+      for (const r of body) {
+        const name = r[iName], seats = num(r[iSeats]), p = r[iParty], v = num(r[iShare]);
+        if (!name || !p || !isFinite(seats) || !isFinite(v)) continue;
+        if (!map.has(name)) { const o = { name, seats, shares: {} }; map.set(name, o); rows.push(o); }
+        map.get(name).shares[p] = v;
+        if (!parties.includes(p)) parties.push(p);
+      }
+    } else {
+      // wide format
+      if (header.length < 3) throw new Error("Wide format needs: constituency, seats, then at least one party column.");
+      parties = header.slice(2).filter(Boolean);
+      for (const r of body) {
+        const name = r[0], seats = num(r[1]);
+        if (!name || !isFinite(seats)) continue;
+        const shares = {};
+        header.slice(2).forEach((p, i) => { if (!p) return; const v = num(r[i + 2]); if (isFinite(v)) shares[p] = v; });
+        rows.push({ name, seats, shares });
+      }
+    }
+    if (!rows.length) throw new Error("No valid rows found. Check that the seats column is numeric.");
+
+    // fractions -> percentages
+    let max = 0; rows.forEach(r => Object.values(r.shares).forEach(v => { if (v > max) max = v; }));
+    let scaled = false;
+    if (max <= 1) { rows.forEach(r => { for (const k in r.shares) r.shares[k] *= 100; }); scaled = true; }
+    return { rows, parties, scaled };
+  }
+
+  function load() {
+    try {
+      const res = parse($("input").value);
+      state.rows = res.rows; state.parties = res.parties;
+      const sel = $("party"); const prev = sel.value;
+      sel.innerHTML = res.parties.map(p => `<option>${p.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</option>`).join("");
+      if (res.parties.includes(prev)) sel.value = prev;
+      setMsg(`Loaded ${res.rows.length} constituencies, ${res.parties.length} parties` + (res.scaled ? " (values were fractions, scaled ×100)." : "."));
+      draw();
+    } catch (e) { setMsg(e.message, true); }
+  }
+
+  function sorted(rows, party) {
+    const r = rows.filter(x => x.shares[party] != null).map(x => ({
+      ...x, share: x.shares[party], thr: threshold(x.seats)
+    }));
+    r.forEach(x => x.margin = x.share - x.thr);
+    switch ($("sort").value) {
+      case "mag-desc": r.sort((a,b) => b.seats - a.seats || a.name.localeCompare(b.name)); break;
+      case "mag-asc": r.sort((a,b) => a.seats - b.seats || a.name.localeCompare(b.name)); break;
+      case "share-desc": r.sort((a,b) => b.share - a.share); break;
+      case "margin-desc": r.sort((a,b) => b.margin - a.margin); break;
+      case "margin-asc": r.sort((a,b) => a.margin - b.margin); break;
+      case "name": r.sort((a,b) => a.name.localeCompare(b.name)); break;
+    }
+    return r;
+  }
+
+  // Draws a horizontal marker at each constituency's threshold
+  const markerPlugin = {
+    id: "thresholdMarkers",
+    afterDatasetsDraw(c) {
+      const t = c.$thr; if (!t) return;
+      const { ctx, scales: { x, y } } = c;
+      const meta = c.getDatasetMeta(0);
+      ctx.save();
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--marker").trim() || "#d6336c";
+      ctx.lineWidth = 3; ctx.lineCap = "round";
+      meta.data.forEach((bar, i) => {
+        const yy = y.getPixelForValue(t[i]);
+        const half = Math.max(bar.width / 2, 3) + 3;
+        ctx.beginPath(); ctx.moveTo(bar.x - half, yy); ctx.lineTo(bar.x + half, yy); ctx.stroke();
+      });
+      ctx.restore();
+    }
+  };
+
+  function draw() {
+    const party = $("party").value;
+    if (!party) return;
+    const data = sorted(state.rows, party);
+    const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const labels = data.map(d => `${d.name} (${d.seats})`);
+    const colours = data.map(d => d.margin >= 0 ? css("--accent") : css("--out"));
+    const yMax = Math.max(...data.map(d => Math.max(d.share, d.thr)), 1);
+
+    if (chart) chart.destroy();
+    chart = new Chart($("chart"), {
+      type: "bar",
+      data: { labels, datasets: [{ label: party + " vote share", data: data.map(d => d.share), backgroundColor: colours, borderRadius: 2, maxBarThickness: 28 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
+        scales: {
+          y: { beginAtZero: true, suggestedMax: Math.ceil(yMax * 1.08), title: { display: true, text: "Vote share (%)" }, ticks: { callback: v => v + "%" } },
+          x: { ticks: { autoSkip: false, maxRotation: 90, minRotation: 60, font: { size: 11 } }, title: { display: true, text: "Constituency (seats)" } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${party}: ${data[ctx.dataIndex].share.toFixed(1)}%`,
+              afterLabel: ctx => {
+                const d = data[ctx.dataIndex];
+                return [`Seats: ${d.seats}`, `Effective threshold: ${d.thr.toFixed(1)}%`, `Margin: ${d.margin >= 0 ? "+" : ""}${d.margin.toFixed(1)} pts`];
+              }
+            }
+          }
+        }
+      },
+      plugins: [markerPlugin]
+    });
+    chart.$thr = data.map(d => d.thr);
+    chart.update("none");
+
+    const above = data.filter(d => d.margin >= 0).length;
+    $("stats").innerHTML =
+      `<span><b>${above}</b> of <b>${data.length}</b> constituencies at or above threshold</span>` +
+      `<span>Average share: <b>${(data.reduce((s,d)=>s+d.share,0)/data.length).toFixed(1)}%</b></span>` +
+      `<span>Seats in constituencies above threshold: <b>${data.filter(d=>d.margin>=0).reduce((s,d)=>s+d.seats,0)}</b> of <b>${data.reduce((s,d)=>s+d.seats,0)}</b></span>`;
+  }
+
+  $("load").addEventListener("click", load);
+  $("example").addEventListener("click", () => { $("input").value = EXAMPLE; load(); });
+  $("party").addEventListener("change", draw);
+  $("sort").addEventListener("change", draw);
+  $("input").addEventListener("paste", () => setTimeout(load, 0));
+})();
+</script>
+</body>
+</html>
