@@ -26,6 +26,7 @@
   .chartbox { position:relative; height:480px; }
   .key { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--muted); margin-bottom:8px; }
   .key span.sw { display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
+  .key span.dt { display:inline-block; width:18px; height:0; border-top:2px dotted #444; vertical-align:3px; margin-right:5px; }
   .key span.mk { display:inline-block; width:18px; height:0; border-top:3px solid var(--marker); vertical-align:3px; margin-right:5px; }
   .stats { display:flex; gap:24px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin-top:8px; }
   .stats b { color:var(--ink); }
@@ -70,9 +71,10 @@
       </label>
     </div>
     <div class="key">
-      <span><span class="sw" style="background:var(--accent)"></span>At or above threshold</span>
-      <span><span class="sw" style="background:var(--out)"></span>Below threshold</span>
+      <span><span class="sw" id="swOn"></span>At or above effective threshold</span>
+      <span><span class="sw" id="swOff"></span>Below effective threshold</span>
       <span><span class="mk"></span>Effective threshold = 75% ÷ (M + 1)</span>
+      <span id="hardKey"><span class="dt"></span><span id="hardKeyText"></span></span>
     </div>
     <div class="chartbox"><canvas id="chart"></canvas></div>
     <div class="stats" id="stats"></div>
@@ -81,6 +83,41 @@
 
 <script>
 (() => {
+  // ====================== CONFIG — edit these ======================
+  // Party colours: keys must match the party names in your table's header
+  // (case-insensitive). Use hex codes. Starter values only.
+  const PARTY_COLOURS = {
+    "PP":      "#3399ff",
+    "PSOE":    "#EF1C27",
+    "Vox":     "#63BE21",
+    "FrA":   "#FFA500",
+    "Podemos": "#7030A0",
+    "SALF":     "#833C0C",
+    "ERC":     "#FFB232",
+    "Junts":   "#00C3B2",
+    "PNV":     "#1B7F3B",
+    "Bildu":   "#B5CF18"
+  };
+  const DEFAULT_COLOUR = "#1f6fb2";   // used for any party not listed above
+  const BELOW_ALPHA = 0.35;           // opacity of bars below the effective threshold
+  const HARD_THRESHOLD = 3;           // legal threshold in %, drawn as a dotted line; set to null to hide
+  // =================================================================
+
+  const SUPERSAMPLE = 2;              // render the chart at this multiple of the screen's pixel ratio (higher = sharper, heavier)
+  const chartDpr = () => Math.max(window.devicePixelRatio || 1, 1) * SUPERSAMPLE;
+
+  const partyColour = p => {
+    const k = Object.keys(PARTY_COLOURS).find(k => k.toLowerCase() === String(p).toLowerCase());
+    return k ? PARTY_COLOURS[k] : DEFAULT_COLOUR;
+  };
+  const fade = (hex, a) => {
+    let h = String(hex).replace("#", "");
+    if (h.length === 3) h = h.split("").map(c => c + c).join("");
+    if (!/^[0-9a-f]{6}$/i.test(h)) return hex;
+    const n = parseInt(h, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  };
+
   const $ = id => document.getElementById(id);
   const state = { rows: [], parties: [] };   // rows: {name, seats, shares:{party:value}}
   let chart = null;
@@ -211,6 +248,16 @@
       const t = c.$thr; if (!t) return;
       const { ctx, scales: { x, y } } = c;
       const meta = c.getDatasetMeta(0);
+      if (HARD_THRESHOLD != null) {
+        const yh = y.getPixelForValue(HARD_THRESHOLD);
+        ctx.save();
+        ctx.setLineDash([2, 4]); ctx.lineWidth = 1.5; ctx.strokeStyle = "#444";
+        ctx.beginPath(); ctx.moveTo(c.chartArea.left, yh); ctx.lineTo(c.chartArea.right, yh); ctx.stroke();
+        ctx.setLineDash([]); ctx.fillStyle = "#444"; ctx.font = "11px system-ui, sans-serif";
+        ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+        ctx.fillText(HARD_THRESHOLD + "% legal threshold", c.chartArea.right - 4, yh - 3);
+        ctx.restore();
+      }
       ctx.save();
       ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--marker").trim() || "#d6336c";
       ctx.lineWidth = 3; ctx.lineCap = "round";
@@ -229,8 +276,13 @@
     const data = sorted(state.rows, party);
     const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
     const labels = data.map(d => `${d.name} (${d.seats})`);
-    const colours = data.map(d => d.margin >= 0 ? css("--accent") : css("--out"));
-    const yMax = Math.max(...data.map(d => Math.max(d.share, d.thr)), 1);
+    const base = partyColour(party);
+    const colours = data.map(d => d.margin >= 0 ? base : fade(base, BELOW_ALPHA));
+    $("swOn").style.background = base;
+    $("swOff").style.background = fade(base, BELOW_ALPHA);
+    $("hardKey").style.display = HARD_THRESHOLD != null ? "" : "none";
+    $("hardKeyText").textContent = HARD_THRESHOLD + "% legal threshold";
+    const yMax = Math.max(...data.map(d => Math.max(d.share, d.thr)), HARD_THRESHOLD || 0, 1);
 
     if (chart) chart.destroy();
     chart = new Chart($("chart"), {
@@ -238,6 +290,7 @@
       data: { labels, datasets: [{ label: party + " vote share", data: data.map(d => d.share), backgroundColor: colours, borderRadius: 2, maxBarThickness: 28 }] },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
+        devicePixelRatio: chartDpr(),
         scales: {
           y: { beginAtZero: true, suggestedMax: Math.ceil(yMax * 1.08), title: { display: true, text: "Vote share (%)" }, ticks: { callback: v => v + "%" } },
           x: { ticks: { autoSkip: false, maxRotation: 90, minRotation: 60, font: { size: 11 } }, title: { display: true, text: "Constituency (seats)" } }
@@ -266,6 +319,13 @@
       `<span>Average share: <b>${(data.reduce((s,d)=>s+d.share,0)/data.length).toFixed(1)}%</b></span>` +
       `<span>Seats in constituencies above threshold: <b>${data.filter(d=>d.margin>=0).reduce((s,d)=>s+d.seats,0)}</b> of <b>${data.reduce((s,d)=>s+d.seats,0)}</b></span>`;
   }
+
+  // Browser zoom changes devicePixelRatio and fires a resize event: re-sync the chart
+  window.addEventListener("resize", () => {
+    if (!chart) return;
+    chart.options.devicePixelRatio = chartDpr();
+    chart.resize();
+  });
 
   $("load").addEventListener("click", load);
   $("example").addEventListener("click", () => { $("input").value = EXAMPLE; load(); });
