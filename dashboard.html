@@ -33,6 +33,7 @@
   .key span.dt { display:inline-block; width:18px; height:0; border-top:2px dotted #444; vertical-align:3px; margin-right:5px; }
   .key span.mk { display:inline-block; width:18px; height:0; border-top:3px solid var(--marker); vertical-align:3px; margin-right:5px; }
   .key span.iqr { display:inline-block; width:0; height:14px; border-left:2.5px solid #1d1d1b; vertical-align:-3px; margin-right:7px; }
+  .key span.iqr.rng { border-left-width:1.25px; border-left-color:rgba(29,29,27,0.4); }
   .stats { display:flex; gap:24px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin-top:8px; }
   .stats b { color:var(--ink); }
   details { font-size:13px; color:var(--muted); margin-top:10px; }
@@ -127,9 +128,10 @@
     <div class="mc-grid">
       <div class="panel">
         <h2 id="mcTitle">Average vote share</h2>
-        <p class="hint">Bars show the mean across runs; the black line spans the interquartile range (25th–75th percentile).</p>
+        <p class="hint">Bars show the mean across runs; the thick black line spans the interquartile range (25th–75th percentile), and the thin grey line behind it spans the full range (lowest to highest run).</p>
         <div class="key">
           <span><span class="iqr"></span>Interquartile range</span>
+          <span><span class="iqr rng"></span>Full range (min to max)</span>
         </div>
         <div class="chartbox short"><canvas id="mcChart"></canvas></div>
         <div class="stats" id="mcStats"></div>
@@ -156,16 +158,13 @@
     "FrA":   "#FFA500",
     "Podemos": "#7030A0",
     "SALF":     "#833C0C",
-    "ERC":     "#FFC91B",
-    "JxCat":   "#00C7AE",
-    "PNV":     "#4AAE4A",
-    "EHB":   "#B5CF18",
-    "BNG":   "#ADCFEF",
-    "Cca":   "#FFD700",
-    "AA":   "#008500",
-    "Others":  "#DCDCDC"
+    "ERC":     "#FFB232",
+    "Junts":   "#00C3B2",
+    "PNV":     "#1B7F3B",
+    "Bildu":   "#B5CF18",
+    "Others":  "#9aa0a6"
   };
-  const DEFAULT_COLOUR = "#000000";   // used for any party not listed above
+  const DEFAULT_COLOUR = "#1f6fb2";   // used for any party not listed above
   const BELOW_ALPHA = 0.35;           // opacity of bars below the effective threshold
   const HARD_THRESHOLD = 3;           // legal threshold in %, drawn as a dotted line; set to null to hide
   const MC_TOP_N = 5;                 // how many seat outcomes to list in the Monte Carlo panel
@@ -499,7 +498,7 @@
     // Parties that are 0.0 in every run are dropped; "Others" is always placed last.
     const stats = mc.parties.map((p, j) => {
       const v = mc.runs.map(r => r[j]).sort((a, b) => a - b);
-      return { party: p, mean: v.reduce((s, x) => s + x, 0) / N, q1: pct(v, 0.25), q3: pct(v, 0.75), j, allZero: v[v.length - 1] === 0 && v[0] === 0, others: isOthers(p) };
+      return { party: p, mean: v.reduce((s, x) => s + x, 0) / N, q1: pct(v, 0.25), q3: pct(v, 0.75), min: v[0], max: v[v.length - 1], j, allZero: v[v.length - 1] === 0 && v[0] === 0, others: isOthers(p) };
     }).filter(s => !s.allZero)
       .sort((a, b) => (a.others - b.others) || (b.mean - a.mean));
     const P = stats.length;
@@ -524,7 +523,7 @@
     $("mcResults").style.display = "";
     $("mcTitle").textContent = `${name}: average vote share`;
     if (mcChart) mcChart.destroy();
-    const yMax = Math.max(...stats.map(s => s.q3), 1);
+    const yMax = Math.max(...stats.map(s => s.max), 1);
     mcChart = new Chart($("mcChart"), {
       type: "bar",
       data: {
@@ -543,7 +542,7 @@
           tooltip: {
             callbacks: {
               label: ctx => `Mean: ${stats[ctx.dataIndex].mean.toFixed(1)}%`,
-              afterLabel: ctx => { const s = stats[ctx.dataIndex]; return [`Q1 (25th): ${s.q1.toFixed(1)}%`, `Q3 (75th): ${s.q3.toFixed(1)}%`, `IQR: ${(s.q3 - s.q1).toFixed(1)} pts`]; }
+              afterLabel: ctx => { const s = stats[ctx.dataIndex]; return [`Q1 (25th): ${s.q1.toFixed(1)}%`, `Q3 (75th): ${s.q3.toFixed(1)}%`, `IQR: ${(s.q3 - s.q1).toFixed(1)} pts`, `Min: ${s.min.toFixed(1)}%`, `Max: ${s.max.toFixed(1)}%`]; }
             }
           }
         }
@@ -554,6 +553,16 @@
           const { ctx, scales: { y } } = c;
           const meta = c.getDatasetMeta(0);
           ctx.save();
+          // Full range (min to max): thinner and lighter, drawn first so the IQR sits on top
+          ctx.strokeStyle = "rgba(29,29,27,0.4)"; ctx.lineWidth = 1.25; ctx.lineCap = "butt";
+          meta.data.forEach((bar, i) => {
+            const ylo = y.getPixelForValue(stats[i].min), yhi = y.getPixelForValue(stats[i].max), cap = 4;
+            ctx.beginPath();
+            ctx.moveTo(bar.x, ylo); ctx.lineTo(bar.x, yhi);
+            ctx.moveTo(bar.x - cap, ylo); ctx.lineTo(bar.x + cap, ylo);
+            ctx.moveTo(bar.x - cap, yhi); ctx.lineTo(bar.x + cap, yhi);
+            ctx.stroke();
+          });
           ctx.strokeStyle = "#1d1d1b"; ctx.lineWidth = 2.5; ctx.lineCap = "butt";
           meta.data.forEach((bar, i) => {
             const y1 = y.getPixelForValue(stats[i].q1), y3 = y.getPixelForValue(stats[i].q3), cap = 7;
