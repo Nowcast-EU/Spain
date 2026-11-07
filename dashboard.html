@@ -18,20 +18,42 @@
   textarea { width:100%; min-height:130px; font:12.5px/1.4 ui-monospace, Menlo, Consolas, monospace; border:1px solid var(--line); border-radius:6px; padding:8px; resize:vertical; }
   .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:10px; }
   label { font-size:13px; color:var(--muted); display:flex; gap:6px; align-items:center; }
-  select, button { font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; }
+  select, button, input[type=text], input[type=number] { font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; }
+  input[type=number] { width:80px; }
+  input[type=text] { width:240px; }
   button.primary { background:var(--accent); color:#fff; border-color:var(--accent); cursor:pointer; }
   button { cursor:pointer; }
   .msg { font-size:13px; margin-top:8px; min-height:18px; }
   .msg.err { color:#b42318; }
   .msg.ok { color:var(--muted); }
   .chartbox { position:relative; height:650px; }
+  .chartbox.short { height:420px; }
   .key { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--muted); margin-bottom:8px; }
   .key span.sw { display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
   .key span.dt { display:inline-block; width:18px; height:0; border-top:2px dotted #444; vertical-align:3px; margin-right:5px; }
   .key span.mk { display:inline-block; width:18px; height:0; border-top:3px solid var(--marker); vertical-align:3px; margin-right:5px; }
+  .key span.iqr { display:inline-block; width:0; height:14px; border-left:2.5px solid #1d1d1b; vertical-align:-3px; margin-right:7px; }
   .stats { display:flex; gap:24px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin-top:8px; }
   .stats b { color:var(--ink); }
   details { font-size:13px; color:var(--muted); margin-top:10px; }
+
+  /* Monte Carlo seat outcomes */
+  .mc-grid { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:16px; align-items:start; }
+  @media (max-width: 900px) { .mc-grid { grid-template-columns:1fr; } }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .panel h2 { font-size:15px; margin:0 0 4px; }
+  .panel .hint { font-size:12.5px; color:var(--muted); margin:0 0 12px; }
+  .outcome { padding:10px 0; border-top:1px solid var(--line); }
+  .outcome:first-of-type { border-top:none; }
+  .outcome .top { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .outcome .rank { font-size:12px; color:var(--muted); width:18px; }
+  .pills { display:flex; flex-wrap:wrap; gap:5px; flex:1; }
+  .pill { font-size:12.5px; font-weight:600; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+  .outcome .pct { font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap; }
+  .outcome .pct small { color:var(--muted); font-weight:400; }
+  .bar { height:6px; background:#eceee9; border-radius:3px; margin-top:7px; overflow:hidden; }
+  .bar > i { display:block; height:100%; background:var(--accent); border-radius:3px; }
+  .coverage { font-size:12.5px; color:var(--muted); margin-top:10px; }
 </style>
 </head>
 <body>
@@ -80,6 +102,46 @@
     <div class="chartbox"><canvas id="chart"></canvas></div>
     <div class="stats" id="stats"></div>
   </div>
+
+  <!-- ============ Monte Carlo ============ -->
+  <div class="card">
+    <h2>3. Monte Carlo runs</h2>
+    <textarea id="mcInput" spellcheck="false" placeholder="Paste your simulation runs (about 1,000).&#10;&#10;Runs down the rows:    Run | PP | PSOE | Vox | ...&#10;Runs across columns:  Party | 1 | 2 | 3 | ... | 1000"></textarea>
+    <div class="row">
+      <button class="primary" id="mcLoad">Load runs</button>
+      <button id="mcExample">Load dummy runs (1,000)</button>
+    </div>
+    <div class="msg" id="mcMsg"></div>
+    <div class="row">
+      <label>Constituency <input type="text" id="mcName" value="Custom constituency"></label>
+      <label>D'Hondt seats <input type="number" id="mcSeats" value="5" min="1" step="1"></label>
+    </div>
+    <details>
+      <summary>Accepted formats</summary>
+      <p>Either orientation is detected automatically. <b>Runs across columns:</b> the header row is run numbers (1, 2, 3… or "Run 1"…) and the first column is party names. <b>Runs down rows:</b> header row is party names, and an optional first column holds the run number. Cells are vote shares. Tab, semicolon or comma separated; % signs are fine; if every value is 1 or below they are treated as fractions and multiplied by 100. A run with a blank or non-numeric cell is skipped (the count is reported above).<br>
+      Seats are allocated per run by plain D'Hondt on the vote shares (no legal threshold applied).</p>
+    </details>
+  </div>
+
+  <div class="card flush" id="mcResults" style="display:none">
+    <div class="mc-grid">
+      <div class="panel">
+        <h2 id="mcTitle">Average vote share</h2>
+        <p class="hint">Bars show the mean across runs; the black line spans the interquartile range (25th–75th percentile).</p>
+        <div class="key">
+          <span><span class="iqr"></span>Interquartile range</span>
+        </div>
+        <div class="chartbox short"><canvas id="mcChart"></canvas></div>
+        <div class="stats" id="mcStats"></div>
+      </div>
+      <div class="panel">
+        <h2>Most likely seat outcomes</h2>
+        <p class="hint" id="mcOutHint"></p>
+        <div id="mcOutcomes"></div>
+        <div class="coverage" id="mcCoverage"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -102,6 +164,7 @@
   const DEFAULT_COLOUR = "#1f6fb2";   // used for any party not listed above
   const BELOW_ALPHA = 0.35;           // opacity of bars below the effective threshold
   const HARD_THRESHOLD = 3;           // legal threshold in %, drawn as a dotted line; set to null to hide
+  const MC_TOP_N = 5;                 // how many seat outcomes to list in the Monte Carlo panel
   // =================================================================
 
   const SUPERSAMPLE = 2;              // render the chart at this multiple of the screen's pixel ratio (higher = sharper, heavier)
@@ -117,6 +180,16 @@
     if (!/^[0-9a-f]{6}$/i.test(h)) return hex;
     const n = parseInt(h, 16);
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  };
+  const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  // Pick black/white text for a given background hex
+  const textOn = hex => {
+    let h = String(hex).replace("#", "");
+    if (h.length === 3) h = h.split("").map(c => c + c).join("");
+    if (!/^[0-9a-f]{6}$/i.test(h)) return "#fff";
+    const n = parseInt(h, 16);
+    const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+    return lum > 0.62 ? "#1d1d1b" : "#fff";
   };
 
   const $ = id => document.getElementById(id);
@@ -321,11 +394,206 @@
       `<span>Seats in constituencies above threshold: <b>${data.filter(d=>d.margin>=0).reduce((s,d)=>s+d.seats,0)}</b> of <b>${data.reduce((s,d)=>s+d.seats,0)}</b></span>`;
   }
 
-  // Browser zoom changes devicePixelRatio and fires a resize event: re-sync the chart
+  // =================================================================
+  // Monte Carlo
+  // =================================================================
+  const mc = { parties: [], runs: [] };   // runs: array of arrays, runs[r][partyIndex] = vote share
+  let mcChart = null;
+
+  function setMcMsg(text, err) { const m = $("mcMsg"); m.textContent = text; m.className = "msg " + (err ? "err" : "ok"); }
+
+  const isRunLabel = s => /^(run\s*)?#?\d+$/i.test(String(s).trim());
+
+  function parseMC(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) throw new Error("Need at least a header row and one data row.");
+    const d = detectDelim(text);
+    const grid = lines.map(l => splitLine(l, d));
+    const head = grid[0], body = grid.slice(1);
+
+    let parties, runs = [], skipped = 0, orientation;
+    const headRuns = head.slice(1);
+
+    if (headRuns.length > 1 && headRuns.every(isRunLabel)) {
+      // runs across the columns, parties down the rows
+      orientation = "runs across columns";
+      parties = []; const cols = [];
+      for (const r of body) {
+        if (!r[0]) continue;
+        parties.push(r[0]);
+        cols.push(r.slice(1).map(num));
+      }
+      if (!parties.length) throw new Error("No party rows found.");
+      const n = Math.max(...cols.map(c => c.length));
+      for (let i = 0; i < n; i++) {
+        const run = cols.map(c => c[i]);
+        if (run.every(v => isFinite(v))) runs.push(run); else skipped++;
+      }
+    } else {
+      // runs down the rows, parties across the columns
+      orientation = "runs down rows";
+      const hasRunCol = body.length > 0 && body.every(r => isRunLabel(r[0] ?? ""));
+      const start = hasRunCol ? 1 : 0;
+      parties = head.slice(start).filter(Boolean);
+      if (!parties.length) throw new Error("No party columns found in the header row.");
+      for (const r of body) {
+        const run = parties.map((_, i) => num(r[i + start]));
+        if (run.every(v => isFinite(v))) runs.push(run); else skipped++;
+      }
+    }
+    if (!runs.length) throw new Error("No valid runs found. Check the layout and that cells are numeric.");
+
+    let max = 0; runs.forEach(r => r.forEach(v => { if (v > max) max = v; }));
+    let scaled = false;
+    if (max <= 1) { runs.forEach(r => { for (let i = 0; i < r.length; i++) r[i] *= 100; }); scaled = true; }
+    return { parties, runs, skipped, scaled, orientation };
+  }
+
+  function loadMC() {
+    try {
+      const res = parseMC($("mcInput").value);
+      mc.parties = res.parties; mc.runs = res.runs;
+      setMcMsg(`Loaded ${res.runs.length} runs × ${res.parties.length} parties (${res.orientation})` +
+        (res.skipped ? `; skipped ${res.skipped} incomplete run${res.skipped > 1 ? "s" : ""}` : "") +
+        (res.scaled ? "; values were fractions, scaled ×100." : "."));
+      drawMC();
+    } catch (e) { setMcMsg(e.message, true); }
+  }
+
+  // Linear-interpolated percentile on a sorted array (same as Excel's QUARTILE.INC / numpy default)
+  function pct(sortedArr, p) {
+    const pos = (sortedArr.length - 1) * p, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return sortedArr[lo] + (sortedArr[hi] - sortedArr[lo]) * (pos - lo);
+  }
+
+  // Plain D'Hondt: returns seat count per party for one run
+  function dhondt(shares, seats) {
+    const alloc = new Array(shares.length).fill(0);
+    for (let s = 0; s < seats; s++) {
+      let best = -1, bestQ = -Infinity;
+      for (let j = 0; j < shares.length; j++) {
+        const q = shares[j] / (alloc[j] + 1);
+        if (q > bestQ + 1e-12 || (Math.abs(q - bestQ) <= 1e-12 && best >= 0 && shares[j] > shares[best])) { bestQ = q; best = j; }
+      }
+      if (best < 0 || bestQ <= 0) break;   // nobody has any votes left to win a seat with
+      alloc[best]++;
+    }
+    return alloc;
+  }
+
+  function drawMC() {
+    if (!mc.runs.length) return;
+    const seats = Math.floor(Number($("mcSeats").value));
+    const name = $("mcName").value.trim() || "Custom constituency";
+    if (!isFinite(seats) || seats < 1) { setMcMsg("Enter a whole number of D'Hondt seats (1 or more).", true); return; }
+
+    const P = mc.parties.length, N = mc.runs.length;
+
+    // --- vote share summary per party
+    const stats = mc.parties.map((p, j) => {
+      const v = mc.runs.map(r => r[j]).sort((a, b) => a - b);
+      return { party: p, mean: v.reduce((s, x) => s + x, 0) / N, q1: pct(v, 0.25), q3: pct(v, 0.75), j };
+    }).sort((a, b) => b.mean - a.mean);
+    const rank = new Map(stats.map((s, i) => [s.j, i]));
+
+    // --- seat outcomes
+    const counts = new Map();
+    for (const run of mc.runs) {
+      const alloc = dhondt(run, seats);
+      const key = alloc.join(",");
+      const e = counts.get(key);
+      if (e) e.n++; else counts.set(key, { alloc, n: 1 });
+    }
+    const outcomes = [...counts.values()].sort((a, b) => b.n - a.n);
+    const top = outcomes.slice(0, MC_TOP_N);
+
+    // --- chart
+    $("mcResults").style.display = "";
+    $("mcTitle").textContent = `${name}: average vote share`;
+    if (mcChart) mcChart.destroy();
+    const yMax = Math.max(...stats.map(s => s.q3), 1);
+    mcChart = new Chart($("mcChart"), {
+      type: "bar",
+      data: {
+        labels: stats.map(s => s.party),
+        datasets: [{ label: "Mean vote share", data: stats.map(s => s.mean), backgroundColor: stats.map(s => partyColour(s.party)), borderRadius: 2, maxBarThickness: 56 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
+        devicePixelRatio: chartDpr(),
+        scales: {
+          y: { beginAtZero: true, suggestedMax: Math.ceil(yMax * 1.1), title: { display: true, text: "Vote share (%)" }, ticks: { callback: v => v + "%" } },
+          x: { ticks: { autoSkip: false, font: { size: 12 } } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `Mean: ${stats[ctx.dataIndex].mean.toFixed(1)}%`,
+              afterLabel: ctx => { const s = stats[ctx.dataIndex]; return [`Q1 (25th): ${s.q1.toFixed(1)}%`, `Q3 (75th): ${s.q3.toFixed(1)}%`, `IQR: ${(s.q3 - s.q1).toFixed(1)} pts`]; }
+            }
+          }
+        }
+      },
+      plugins: [{
+        id: "iqrWhiskers",
+        afterDatasetsDraw(c) {
+          const { ctx, scales: { y } } = c;
+          const meta = c.getDatasetMeta(0);
+          ctx.save();
+          ctx.strokeStyle = "#1d1d1b"; ctx.lineWidth = 2.5; ctx.lineCap = "butt";
+          meta.data.forEach((bar, i) => {
+            const y1 = y.getPixelForValue(stats[i].q1), y3 = y.getPixelForValue(stats[i].q3), cap = 7;
+            ctx.beginPath();
+            ctx.moveTo(bar.x, y1); ctx.lineTo(bar.x, y3);
+            ctx.moveTo(bar.x - cap, y1); ctx.lineTo(bar.x + cap, y1);
+            ctx.moveTo(bar.x - cap, y3); ctx.lineTo(bar.x + cap, y3);
+            ctx.stroke();
+          });
+          ctx.restore();
+        }
+      }]
+    });
+
+    $("mcStats").innerHTML =
+      `<span><b>${N.toLocaleString()}</b> runs</span>` +
+      `<span><b>${seats}</b> D'Hondt seat${seats > 1 ? "s" : ""}</span>` +
+      `<span><b>${P}</b> parties</span>`;
+
+    // --- outcomes list
+    const topShare = top.length ? top[0].n / N * 100 : 0;
+    $("mcOutHint").textContent = `${name}, ${seats} seat${seats > 1 ? "s" : ""}. Each outcome is a full seat split; % = share of runs producing exactly that split.`;
+    $("mcOutcomes").innerHTML = top.map((o, i) => {
+      const pills = o.alloc
+        .map((n, j) => ({ n, j }))
+        .filter(x => x.n > 0)
+        .sort((a, b) => b.n - a.n || rank.get(a.j) - rank.get(b.j))
+        .map(x => { const col = partyColour(mc.parties[x.j]); return `<span class="pill" style="background:${col};color:${textOn(col)}">${esc(mc.parties[x.j])} ${x.n}</span>`; })
+        .join("");
+      const pc = o.n / N * 100;
+      return `<div class="outcome">
+        <div class="top"><span class="rank">${i + 1}</span><div class="pills">${pills}</div>
+        <span class="pct">${pc.toFixed(1)}% <small>(${o.n.toLocaleString()} runs)</small></span></div>
+        <div class="bar"><i style="width:${topShare ? (pc / topShare * 100).toFixed(1) : 0}%"></i></div>
+      </div>`;
+    }).join("");
+    const covered = top.reduce((s, o) => s + o.n, 0) / N * 100;
+    $("mcCoverage").textContent = `Top ${top.length} of ${outcomes.length.toLocaleString()} distinct outcome${outcomes.length > 1 ? "s" : ""} cover ${covered.toFixed(1)}% of runs. Bars are scaled to the most likely outcome.`;
+    setMcMsg($("mcMsg").className.includes("err") ? "" : $("mcMsg").textContent, false);
+  }
+
+  // Dummy runs: 1,000 draws, correlated-free normal noise around fixed means
+  function mcExampleText() {
+    const spec = [["PP", 33, 2.2], ["PSOE", 27, 2.0], ["Vox", 14, 1.6], ["FrA", 9, 1.4], ["Podemos", 6, 1.0]];
+    const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+    const lines = [["Run", ...spec.map(s => s[0])].join("\t")];
+    for (let i = 1; i <= 1000; i++) lines.push([i, ...spec.map(s => Math.max(0, s[1] + s[2] * gauss()).toFixed(2))].join("\t"));
+    return lines.join("\n");
+  }
+
+  // Browser zoom changes devicePixelRatio and fires a resize event: re-sync the charts
   window.addEventListener("resize", () => {
-    if (!chart) return;
-    chart.options.devicePixelRatio = chartDpr();
-    chart.resize();
+    [chart, mcChart].forEach(c => { if (!c) return; c.options.devicePixelRatio = chartDpr(); c.resize(); });
   });
 
   $("load").addEventListener("click", load);
@@ -333,6 +601,12 @@
   $("party").addEventListener("change", draw);
   $("sort").addEventListener("change", draw);
   $("input").addEventListener("paste", () => setTimeout(load, 0));
+
+  $("mcLoad").addEventListener("click", loadMC);
+  $("mcExample").addEventListener("click", () => { $("mcInput").value = mcExampleText(); loadMC(); });
+  $("mcInput").addEventListener("paste", () => setTimeout(loadMC, 0));
+  $("mcName").addEventListener("input", drawMC);
+  $("mcSeats").addEventListener("input", drawMC);
 })();
 </script>
 </body>
