@@ -54,6 +54,13 @@
   .outcome .pct small { color:var(--muted); font-weight:400; }
   .bar { height:6px; background:#eceee9; border-radius:3px; margin-top:7px; overflow:hidden; }
   .bar > i { display:block; height:100%; background:var(--accent); border-radius:3px; }
+  .rightcol { display:flex; flex-direction:column; gap:16px; min-width:0; }
+  .flip-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px; }
+  .flip-line .arrow { color:var(--muted); font-size:13px; }
+  .flip-gap { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .flip-gap small { font-size:13px; font-weight:400; color:var(--muted); }
+  .flip-detail { font-size:13px; color:var(--muted); margin-top:8px; }
+  .flip-detail b { color:var(--ink); }
   .coverage { font-size:12.5px; color:var(--muted); margin-top:10px; }
 </style>
 </head>
@@ -136,11 +143,18 @@
         <div class="chartbox short"><canvas id="mcChart"></canvas></div>
         <div class="stats" id="mcStats"></div>
       </div>
+      <div class="rightcol">
       <div class="panel">
         <h2>Most likely seat outcomes</h2>
         <p class="hint" id="mcOutHint"></p>
         <div id="mcOutcomes"></div>
         <div class="coverage" id="mcCoverage"></div>
+      </div>
+      <div class="panel">
+        <h2>Closest seat to flipping</h2>
+        <p class="hint">Based on the average vote shares across all runs, with the same threshold and "Others" rules.</p>
+        <div id="mcFlip"></div>
+      </div>
       </div>
     </div>
   </div>
@@ -162,8 +176,7 @@
     "Junts":   "#00C3B2",
     "PNV":     "#1B7F3B",
     "Bildu":   "#B5CF18",
-    "AA":   "#008500",
-    "Others":  "#dcdcdc"
+    "Others":  "#9aa0a6"
   };
   const DEFAULT_COLOUR = "#1f6fb2";   // used for any party not listed above
   const BELOW_ALPHA = 0.35;           // opacity of bars below the effective threshold
@@ -602,6 +615,35 @@
     }).join("");
     const covered = top.reduce((s, o) => s + o.n, 0) / N * 100;
     $("mcCoverage").textContent = `Top ${top.length} of ${outcomes.length.toLocaleString()} distinct outcome${outcomes.length > 1 ? "s" : ""} cover ${covered.toFixed(1)}% of runs. Bars are scaled to the most likely outcome.`;
+    // --- closest seat to flipping, from the average vote shares
+    // Mean shares with the same eligibility rules as the per-run allocation (Others and sub-threshold parties get 0).
+    const means = new Array(mc.parties.length).fill(0);
+    stats.forEach(s => { if (!s.others && s.mean >= MC_THRESHOLD) means[s.j] = s.mean; });
+    const mAlloc = dhondt(means, seats);
+    // The marginal seat is the winning seat with the lowest quotient; that is the one a challenger has to overtake.
+    let M = -1, qmin = Infinity;
+    mAlloc.forEach((n, j) => { if (n > 0 && means[j] / n < qmin) { qmin = means[j] / n; M = j; } });
+    let flip = null;
+    if (M >= 0) {
+      for (let B = 0; B < means.length; B++) {
+        if (B === M || means[B] <= 0) continue;
+        const b = mAlloc[B] + 1, qB = means[B] / b, m = mAlloc[M];
+        const gain = b * qmin - means[B];          // pp B alone needs to gain to draw level with the marginal seat
+        if (!flip || gain < flip.gain) flip = { B, b, qB, m, gain, loss: means[M] - m * qB, swing: (b * means[M] - m * means[B]) / (m + b) };
+      }
+    }
+    const pill = (j, txt) => { const col = partyColour(mc.parties[j]); return `<span class="pill" style="background:${col};color:${textOn(col)}">${esc(mc.parties[j])} ${txt}</span>`; };
+    if (!flip) {
+      $("mcFlip").innerHTML = `<div class="flip-detail">No flip to show: fewer than two parties are above the ${MC_THRESHOLD}% threshold in the average.</div>`;
+    } else {
+      const A = M, a = flip.m, B = flip.B, b = flip.b, pa = esc(mc.parties[A]), pb = esc(mc.parties[B]);
+      $("mcFlip").innerHTML =
+        `<div class="flip-line">${pill(A, "seat " + a)}<span class="arrow">could flip to</span>${pill(B, "seat " + b)}</div>` +
+        `<div class="flip-gap">${flip.gain.toFixed(2)} pp <small>gap</small></div>` +
+        `<div class="flip-detail"><b>${pb}</b> would need to rise from <b>${means[B].toFixed(2)}%</b> to <b>${(means[B] + flip.gain).toFixed(2)}%</b> (+${flip.gain.toFixed(2)} pp) to take seat ${b} from <b>${pa}</b>'s seat ${a}.</div>` +
+        `<div class="flip-detail">Alternatively <b>${pa}</b> falling by ${flip.loss.toFixed(2)} pp, or ${flip.swing.toFixed(2)} pp moving from ${pa} to ${pb}, would also do it. Votes per seat: ${pa} seat ${a} = ${qmin.toFixed(2)}, ${pb} seat ${b} = ${flip.qB.toFixed(2)}.</div>`;
+    }
+
     setMcMsg($("mcMsg").className.includes("err") ? "" : $("mcMsg").textContent, false);
   }
 
