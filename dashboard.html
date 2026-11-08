@@ -718,7 +718,20 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           }
         }
       },
-       plugins: [{
+      plugins: [{
+        id: "thresholdLine",
+        afterDatasetsDraw(c) {
+          const { ctx, chartArea, scales: { y } } = c;
+          const yh = y.getPixelForValue(MC_THRESHOLD);
+          ctx.save();
+          ctx.setLineDash([2, 4]); ctx.lineWidth = 1.5; ctx.strokeStyle = "#000";
+          ctx.beginPath(); ctx.moveTo(chartArea.left, yh); ctx.lineTo(chartArea.right, yh); ctx.stroke();
+          ctx.setLineDash([]); ctx.fillStyle = "#000"; ctx.font = "11px system-ui, sans-serif";
+          ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+          ctx.fillText(MC_THRESHOLD + "% legal threshold", chartArea.right - 4, yh - 3);
+          ctx.restore();
+        }
+      }, {
         id: "prevOffset",
         // Shift the previous-election bars right by half the projected bar's width,
         // so their centre sits on the projected bar's right-hand edge.
