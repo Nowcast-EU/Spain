@@ -117,7 +117,7 @@
   <!-- ============ Monte Carlo ============ -->
   <div class="card">
     <h2>3. Monte Carlo runs</h2>
-    <textarea id="mcInput" spellcheck="false" placeholder="Paste your simulation runs (about 1,000).&#10;&#10;Runs down the rows:    Run | PP | PSOE | Vox | ...&#10;Runs across columns:  Party | 1 | 2 | 3 | ... | 1000"></textarea>
+    <textarea id="mcInput" spellcheck="false" placeholder="Paste your simulation runs (about 1,000).&#10;&#10;Runs across columns:  Constituency | 1 | 2 | 3 | ... | 1000   (then one row per party)&#10;Runs down the rows:    Constituency | PP | PSOE | Vox | ...   (then one row per run)"></textarea>
     <div class="row">
       <button class="primary" id="mcLoad">Load runs</button>
       <button id="mcExample">Load dummy runs (1,000)</button>
@@ -533,6 +533,9 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     const head = grid[0], body = grid.slice(1);
 
     let parties, runs = [], skipped = 0, orientation;
+     // Top-left header cell: a constituency name, unless it's a generic label like "Run" or "Party"
+    const cell0 = (head[0] || "").trim();
+    const constituency = /^(run|runs|party|parties|constituency|#)?$/i.test(cell0) ? "" : cell0;
     const headRuns = head.slice(1);
 
     if (headRuns.length > 1 && headRuns.every(isRunLabel)) {
@@ -567,16 +570,33 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     let max = 0; runs.forEach(r => r.forEach(v => { if (v > max) max = v; }));
     let scaled = false;
     if (max <= 1) { runs.forEach(r => { for (let i = 0; i < r.length; i++) r[i] *= 100; }); scaled = true; }
-    return { parties, runs, skipped, scaled, orientation };
+    return { parties, runs, skipped, scaled, orientation, constituency };
   }
+
+  // Accent- and case-insensitive name comparison ("Álava" matches "alava")
+  const normName = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
   function loadMC() {
     try {
       const res = parseMC($("mcInput").value);
       mc.parties = res.parties; mc.runs = res.runs;
+
+      // Auto-select the constituency named in the top-left cell
+      let constNote = "";
+      if (res.constituency) {
+        const idx = prev.rows.findIndex(r => normName(r.name) === normName(res.constituency));
+        if (idx >= 0) {
+          $("mcConst").value = String(idx);
+          applyConstSeats();                     // also sets D'Hondt seats to its magnitude
+          constNote = `; constituency set to ${prev.rows[idx].name}`;
+        } else {
+          constNote = `; "${res.constituency}" not found in PREVIOUS_RESULTS, selector left unchanged`;
+        }
+      }
+
       setMcMsg(`Loaded ${res.runs.length} runs × ${res.parties.length} parties (${res.orientation})` +
         (res.skipped ? `; skipped ${res.skipped} incomplete run${res.skipped > 1 ? "s" : ""}` : "") +
-        (res.scaled ? "; values were fractions, scaled ×100." : "."));
+        (res.scaled ? "; values were fractions, scaled ×100" : "") + constNote + ".");
       drawMC();
     } catch (e) { setMcMsg(e.message, true); }
   }
