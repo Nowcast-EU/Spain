@@ -42,29 +42,46 @@
   details { font-size:13px; color:var(--muted); margin-top:10px; }
 
   /* Monte Carlo seat outcomes */
-  .mc-grid { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:16px; align-items:start; }
+  .mc-grid { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:16px; align-items:stretch; }
   @media (max-width: 900px) { .mc-grid { grid-template-columns:1fr; } }
   .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .mc-grid > .panel { display:flex; flex-direction:column; }
+  .mc-grid > .panel .chartbox.short { flex:1 1 420px; height:auto; min-height:420px; }
+  .mc-grid > .panel, .mc-grid .rightcol > .panel { background:transparent; border:0; border-radius:0; }
+  .mc-grid { gap:0; }
+  .mc-grid > .panel { border-right:1px solid var(--line); }
+  .rightcol > .panel:first-child { border-bottom:1px solid var(--line); }
+  @media (max-width: 900px) {
+    .mc-grid > .panel { border-right:0; border-bottom:1px solid var(--line); }
+  }
   .panel h2 { font-size:15px; margin:0 0 4px; }
   .panel .hint { font-size:12.5px; color:var(--muted); margin:0 0 12px; }
   .outcome { padding:10px 0; border-top:1px solid var(--line); }
   .outcome:first-of-type { border-top:none; }
   .outcome .top { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
-  .outcome .rank { font-size:12px; color:var(--muted); width:18px; }
+  .outcome .rank { font-size:15px; font-weight:700; color:#000000; width:18px; }
   .pills { display:flex; flex-wrap:wrap; gap:5px; flex:1; }
   .pill { font-size:12.5px; font-weight:600; padding:2px 8px; border-radius:999px; white-space:nowrap; }
   .outcome .pct { font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap; }
   .outcome .pct small { color:var(--muted); font-weight:400; }
   .bar { height:6px; background:#eceee9; border-radius:3px; margin-top:7px; overflow:hidden; }
-  .bar > i { display:block; height:100%; background:var(--accent); border-radius:3px; }
-  .rightcol { display:flex; flex-direction:column; gap:16px; min-width:0; }
+  .bar > i { display:block; height:100%; background:#b50128; border-radius:3px; }
+  .rightcol { display:flex; flex-direction:column; gap:0; min-width:0; }
   .flip-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px; }
   .flip-line .arrow { color:var(--muted); font-size:13px; }
+  .flip-quotients { display:grid; gap:8px; margin:4px 0 12px; }
+  .flip-quotient-label { display:flex; justify-content:space-between; gap:8px; margin-bottom:3px; font-size:12px; color:var(--muted); }
+  .flip-quotient-label .projected-winner { color:#000000; }
+  .flip-quotient-label b { color:var(--ink); font-variant-numeric:tabular-nums; }
+  .flip-quotient-track { height:8px; background:#eceee9; overflow:hidden; }
+  .flip-quotient-track i { display:block; height:100%; }
+  .flip-chart-heading { font-size:15px; font-weight:700; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+  .flip-chart-note { font-size:12.5px; color:var(--muted); margin:2px 0 8px; }
   .flip-gap { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.1; }
   .flip-gap small { font-size:13px; font-weight:400; color:var(--muted); }
   .flip-detail { font-size:13px; color:var(--muted); margin-top:8px; }
   .flip-detail b { color:var(--ink); }
-  .coverage { font-size:12.5px; color:var(--muted); margin-top:10px; }
+  .coverage { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
 </style>
 </head>
 <body>
@@ -139,7 +156,7 @@
     <div class="mc-grid">
       <div class="panel">
         <h2 id="mcTitle">Average vote share</h2>
-        <p class="hint">Bars show the mean across runs; the thin line spans the full range (lowest to highest run).</p>
+        <p class="hint" id="mcSubtitle"></p>
         <div class="key">
           <span><span class="iqr rng"></span>Full range (min to max)</span>
         </div>
@@ -149,18 +166,15 @@
         </div>
         <p class="hint" id="mcAliasNote" style="display:none;margin:0 0 8px"></p>
         <div class="chartbox short"><canvas id="mcChart"></canvas></div>
-        <div class="stats" id="mcStats"></div>
       </div>
       <div class="rightcol">
       <div class="panel">
         <h2>Most likely seat outcomes</h2>
-        <p class="hint" id="mcOutHint"></p>
-        <div id="mcOutcomes"></div>
         <div class="coverage" id="mcCoverage"></div>
+        <div id="mcOutcomes"></div>
       </div>
       <div class="panel">
         <h2>Closest seat to flipping</h2>
-        <p class="hint">Based on the average vote shares across all runs, with the same threshold and "Others" rules.</p>
         <div id="mcFlip"></div>
       </div>
       </div>
@@ -289,6 +303,10 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
   };
 
   const $ = id => document.getElementById(id);
+  const dateParts = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    .formatToParts(new Date())
+    .reduce((parts, part) => { parts[part.type] = part.value; return parts; }, {});
+  $("mcSubtitle").textContent = `Based on Spanish polling averages • ${dateParts.day} ${dateParts.month}, ${dateParts.year}`;
   const state = { rows: [], parties: [] };   // rows: {name, seats, shares:{party:value}}
   const prev = { rows: [], parties: [] };    // previous election results, same shape as state
   let chart = null;
@@ -674,7 +692,9 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
 
     // --- chart
     $("mcResults").style.display = "";
-    $("mcTitle").textContent = name ? `${name}: average vote share` : "Average vote share";
+    $("mcTitle").textContent = name
+      ? `Nowcast EU | ${name} constituency seat projection`
+      : "Nowcast EU | Constituency seat projection";
     $("mcPrevKey").style.display = hasPrev ? "" : "none";
     if (mcChart) mcChart.destroy();
     const effTh = threshold(seats);   // effective threshold (%) for this magnitude: 75 / (M + 1)
@@ -684,11 +704,11 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     // drawn behind. grouped:false makes both datasets sit on the same x position instead of side by side.
     const datasets = [{
       label: "Mean vote share", data: stats.map(s => s.mean), backgroundColor: stats.map(s => partyColour(s.party)),
-      borderRadius: 2, maxBarThickness: MC_BAR_MAX, barPercentage: 0.9, grouped: false, order: 0
+      borderRadius: 0, maxBarThickness: MC_BAR_MAX, barPercentage: 0.9, grouped: false, order: 0
     }];
     if (hasPrev) datasets.push({
       label: "Previous election", data: stats.map(s => s.prev), backgroundColor: stats.map(s => fade(partyColour(s.prevName || s.party), PREV_ALPHA)),
-      borderRadius: 2, maxBarThickness: MC_BAR_MAX * PREV_WIDTH, barPercentage: 0.9 * PREV_WIDTH, grouped: false, order: 1
+      borderRadius: 0, maxBarThickness: MC_BAR_MAX * PREV_WIDTH, barPercentage: 0.9 * PREV_WIDTH, grouped: false, order: 1
     });
 
     mcChart = new Chart($("mcChart"), {
@@ -727,9 +747,18 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           ctx.save();
           ctx.setLineDash([2, 4]); ctx.lineWidth = 1.5; ctx.strokeStyle = "#000";
           ctx.beginPath(); ctx.moveTo(chartArea.left, yh); ctx.lineTo(chartArea.right, yh); ctx.stroke();
+          ctx.restore();
+        },
+        afterDraw(c) {
+          const { ctx, chartArea, scales: { y } } = c;
+          const yh = y.getPixelForValue(MC_THRESHOLD);
+          const label = MC_THRESHOLD + "% legal threshold";
+          ctx.save();
           ctx.setLineDash([]); ctx.fillStyle = "#000"; ctx.font = "11px system-ui, sans-serif";
           ctx.textAlign = "right"; ctx.textBaseline = "bottom";
-          ctx.fillText(MC_THRESHOLD + "% legal threshold", chartArea.right - 4, yh - 3);
+          ctx.lineJoin = "round"; ctx.lineWidth = 3; ctx.strokeStyle = "#fff";
+          ctx.strokeText(label, chartArea.right - 4, yh - 3);
+          ctx.fillText(label, chartArea.right - 4, yh - 3);
           ctx.restore();
         }
 
@@ -741,9 +770,18 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           ctx.save();
           ctx.setLineDash([6, 4]); ctx.lineWidth = 1; ctx.strokeStyle = "#8a8a85";
           ctx.beginPath(); ctx.moveTo(chartArea.left, yh); ctx.lineTo(chartArea.right, yh); ctx.stroke();
+          ctx.restore();
+        },
+        afterDraw(c) {
+          const { ctx, chartArea, scales: { y } } = c;
+          const yh = y.getPixelForValue(effTh);
+          const label = "est. effective threshold";
+          ctx.save();
           ctx.setLineDash([]); ctx.fillStyle = "#6b6b66"; ctx.font = "11px system-ui, sans-serif";
           ctx.textAlign = "right"; ctx.textBaseline = "bottom";
-          ctx.fillText("est. effective threshold", chartArea.right - 4, yh - 3);
+          ctx.lineJoin = "round"; ctx.lineWidth = 3; ctx.strokeStyle = "#fff";
+          ctx.strokeText(label, chartArea.right - 4, yh - 3);
+          ctx.fillText(label, chartArea.right - 4, yh - 3);
           ctx.restore();
         }
         
@@ -776,10 +814,11 @@ if (hasPrev && PREV_TICK) {
     ctx.beginPath(); ctx.moveTo(bar.x - half + shift, yy); ctx.lineTo(bar.x + half + shift, yy); ctx.stroke();
   });
 }
-          // Full range (min to max): thinner and lighter, drawn first so the IQR sits on top
-          ctx.strokeStyle = "rgba(29,29,27,0.4)"; ctx.lineWidth = 1.25; ctx.lineCap = "butt";
+          // Full range (min to max), drawn first so the IQR sits on top
+          ctx.strokeStyle = "#000000"; ctx.lineWidth = 1.25; ctx.lineCap = "butt";
           meta.data.forEach((bar, i) => {
-            const ylo = y.getPixelForValue(stats[i].min), yhi = y.getPixelForValue(stats[i].max), cap = 4;
+            if (stats[i].others) return;
+            const ylo = y.getPixelForValue(stats[i].min), yhi = y.getPixelForValue(stats[i].max), cap = 6;
             ctx.beginPath();
             ctx.moveTo(bar.x, ylo); ctx.lineTo(bar.x, yhi);
             ctx.moveTo(bar.x - cap, ylo); ctx.lineTo(bar.x + cap, ylo);
@@ -791,14 +830,8 @@ if (hasPrev && PREV_TICK) {
       }]
     });
 
-    $("mcStats").innerHTML =
-      `<span><b>${N.toLocaleString()}</b> runs</span>` +
-      `<span><b>${seats}</b> D'Hondt seat${seats > 1 ? "s" : ""}</span>` +
-      `<span><b>${P}</b> parties</span>`;
-
     // --- outcomes list
     const topShare = top.length ? top[0].n / N * 100 : 0;
-    $("mcOutHint").textContent = `${label}, ${seats} seat${seats > 1 ? "s" : ""}. ${MC_THRESHOLD}% threshold applied; "Others" excluded. Each outcome is a full seat split; % = share of runs producing exactly that split.`;
     $("mcOutcomes").innerHTML = top.map((o, i) => {
       const pills = o.alloc
         .map((n, j) => ({ n, j }))
@@ -808,7 +841,7 @@ if (hasPrev && PREV_TICK) {
         .join("") || `<span class="pill" style="background:#eceee9;color:#6b6b66">No seats allocated</span>`;
       const pc = o.n / N * 100;
       return `<div class="outcome">
-        <div class="top"><span class="rank">${i + 1}</span><div class="pills">${pills}</div>
+        <div class="top"><span class="rank">#${i + 1}</span><div class="pills">${pills}</div>
         <span class="pct">${pc.toFixed(1)}% <small>(${o.n.toLocaleString()} runs)</small></span></div>
         <div class="bar"><i style="width:${topShare ? (pc / topShare * 100).toFixed(1) : 0}%"></i></div>
       </div>`;
@@ -820,6 +853,7 @@ if (hasPrev && PREV_TICK) {
     const means = new Array(mc.parties.length).fill(0);
     stats.forEach(s => { if (!s.others && s.mean >= MC_THRESHOLD) means[s.j] = s.mean; });
     const mAlloc = dhondt(means, seats);
+    const penultimateAlloc = dhondt(means, seats - 1);
     // The marginal seat is the winning seat with the lowest quotient; that is the one a challenger has to overtake.
     let M = -1, qmin = Infinity;
     mAlloc.forEach((n, j) => { if (n > 0 && means[j] / n < qmin) { qmin = means[j] / n; M = j; } });
@@ -828,20 +862,34 @@ if (hasPrev && PREV_TICK) {
       for (let B = 0; B < means.length; B++) {
         if (B === M || means[B] <= 0) continue;
         const b = mAlloc[B] + 1, qB = means[B] / b, m = mAlloc[M];
-        const gain = b * qmin - means[B];          // pp B alone needs to gain to draw level with the marginal seat
-        if (!flip || gain < flip.gain) flip = { B, b, qB, m, gain, loss: means[M] - m * qB, swing: (b * means[M] - m * means[B]) / (m + b) };
+        const gain = b * qmin - means[B];
+        if (!flip || gain < flip.gain) flip = { B, b, qB, m, gain };
       }
     }
     const pill = (j, txt) => { const col = partyColour(mc.parties[j]); return `<span class="pill" style="background:${col};color:${textOn(col)}">${esc(mc.parties[j])} ${txt}</span>`; };
+    const ordinal = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th")}`;
     if (!flip) {
       $("mcFlip").innerHTML = `<div class="flip-detail">No flip to show: fewer than two parties are above the ${MC_THRESHOLD}% threshold in the average.</div>`;
     } else {
       const A = M, a = flip.m, B = flip.B, b = flip.b, pa = esc(mc.parties[A]), pb = esc(mc.parties[B]);
+      const quotientBars = mc.parties.map((party, j) => !othersIdx.has(j) && means[j] >= MC_THRESHOLD
+        ? { j, seatLabel: `seat ${penultimateAlloc[j] + 1}${mAlloc[j] > penultimateAlloc[j] ? " ✓" : ""}`, quotient: means[j] / (penultimateAlloc[j] + 1), projectedWinner: mAlloc[j] > penultimateAlloc[j] }
+        : null)
+        .filter(Boolean);
+      quotientBars.sort((left, right) => right.quotient - left.quotient);
+      const quotientMax = Math.max(...quotientBars.map(item => item.quotient));
+      const quotientBar = ({ j, seatLabel, quotient, projectedWinner }) => {
+        const width = (quotient / quotientMax * 100).toFixed(1);
+        const colour = partyColour(mc.parties[j]);
+        return `<div><div class="flip-quotient-label"><span class="${projectedWinner ? "projected-winner" : ""}">${esc(mc.parties[j])} ${seatLabel}</span><b>${quotient.toFixed(1)}</b></div><div class="flip-quotient-track"><i style="width:${width}%;background:${colour}"></i></div></div>`;
+      };
       $("mcFlip").innerHTML =
         `<div class="flip-line">${pill(A, "seat " + a)}<span class="arrow">could flip to</span>${pill(B, "seat " + b)}</div>` +
-        `<div class="flip-gap">${flip.gain.toFixed(2)} pp <small>gap</small></div>` +
-        `<div class="flip-detail"><b>${pb}</b> would need to rise from <b>${means[B].toFixed(2)}%</b> to <b>${(means[B] + flip.gain).toFixed(2)}%</b> (+${flip.gain.toFixed(2)} pp) to take seat ${b} from <b>${pa}</b>'s seat ${a}.</div>` +
-        `<div class="flip-detail">Alternatively <b>${pa}</b> falling by ${flip.loss.toFixed(2)} pp, or ${flip.swing.toFixed(2)} pp moving from ${pa} to ${pb}, would also do it. Votes per seat: ${pa} seat ${a} = ${qmin.toFixed(2)}, ${pb} seat ${b} = ${flip.qB.toFixed(2)}.</div>`;
+        `<div class="flip-gap">${flip.gain.toFixed(1)} pt <small>gap</small></div>` +
+        `<div class="flip-detail"><b>${pb}</b> would need to rise from <b>${means[B].toFixed(1)}%</b> to <b>${(means[B] + flip.gain).toFixed(1)}%</b> (+${flip.gain.toFixed(1)} pt) to take their ${ordinal(b)} seat from <b>${pa}</b>'s ${ordinal(a)} seat.</div>` +
+        `<div class="flip-chart-heading">The race for seat ${seats}</div>` +
+        `<p class="flip-chart-note">Bars show each eligible party's quotient when seat ${seats} is allocated, after the first ${seats - 1} seats.</p>` +
+        `<div class="flip-quotients">${quotientBars.map(quotientBar).join("")}</div>`;
     }
 
     setMcMsg($("mcMsg").className.includes("err") ? "" : $("mcMsg").textContent, false);
