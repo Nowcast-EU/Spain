@@ -679,8 +679,8 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         devicePixelRatio: chartDpr(),
         interaction: { mode: "index", intersect: false },
         scales: {
-          y: { beginAtZero: true, suggestedMax: Math.ceil(yMax * 1.1), title: { display: true, text: "Vote share (%)" }, ticks: { callback: v => v + "%" } },
-          x: { ticks: { autoSkip: false, font: { size: 12 } } }
+        y: { beginAtZero: true, suggestedMax: Math.ceil(yMax * 1.1), grid: { drawOnChartArea: false }, title: { display: true, text: "Vote share (%)" }, ticks: { callback: v => v + "%" } },
+        x: { grid: { drawOnChartArea: false }, ticks: { autoSkip: false, font: { size: 12 } } }
         },
         plugins: {
           legend: { display: false },
@@ -699,21 +699,35 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           }
         }
       },
-      plugins: [{
+       plugins: [{
+        id: "prevOffset",
+        // Shift the previous-election bars right by half the projected bar's width,
+        // so their centre sits on the projected bar's right-hand edge.
+        beforeDatasetDraw(c, args) {
+          if (args.index !== 1) return;
+          const b = c.getDatasetMeta(0).data[0];
+          c.ctx.save();
+          c.ctx.translate(b ? b.width / 2 : 0, 0);
+        },
+        afterDatasetDraw(c, args) {
+          if (args.index === 1) c.ctx.restore();
+        }
+      }, {
         id: "iqrWhiskers",
         afterDatasetsDraw(c) {
           const { ctx, scales: { y } } = c;
           const meta = c.getDatasetMeta(0);
           ctx.save();
           // Previous-election tick: a short line across the thin bar at its exact value, drawn over the projected bar
-          if (hasPrev && PREV_TICK) {
-            ctx.strokeStyle = "rgba(29,29,27,0.55)"; ctx.lineWidth = 2; ctx.lineCap = "butt";
-            c.getDatasetMeta(1).data.forEach((bar, i) => {
-              const v = stats[i].prev; if (v == null) return;
-              const yy = y.getPixelForValue(v), half = bar.width / 2;
-              ctx.beginPath(); ctx.moveTo(bar.x - half, yy); ctx.lineTo(bar.x + half, yy); ctx.stroke();
-            });
-          }
+if (hasPrev && PREV_TICK) {
+  const shift = meta.data[0] ? meta.data[0].width / 2 : 0;
+  ctx.strokeStyle = "rgba(29,29,27,0.55)"; ctx.lineWidth = 2; ctx.lineCap = "butt";
+  c.getDatasetMeta(1).data.forEach((bar, i) => {
+    const v = stats[i].prev; if (v == null) return;
+    const yy = y.getPixelForValue(v), half = bar.width / 2;
+    ctx.beginPath(); ctx.moveTo(bar.x - half + shift, yy); ctx.lineTo(bar.x + half + shift, yy); ctx.stroke();
+  });
+}
           // Full range (min to max): thinner and lighter, drawn first so the IQR sits on top
           ctx.strokeStyle = "rgba(29,29,27,0.4)"; ctx.lineWidth = 1.25; ctx.lineCap = "butt";
           meta.data.forEach((bar, i) => {
