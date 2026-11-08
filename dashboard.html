@@ -56,6 +56,10 @@
   }
   .panel h2 { font-size:15px; margin:0 0 4px; }
   .panel .hint { font-size:12.5px; color:var(--muted); margin:0 0 12px; }
+  .mc-heading { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .mc-heading-logo { width:auto; height:48px; flex:none; }
+  #mcTitle { font-size:20px; line-height:24px; margin:0 0 4px; }
+  #mcSubtitle { font-size:15px; line-height:20px; margin:0; }
   .outcome { padding:10px 0; border-top:1px solid var(--line); }
   .outcome:first-of-type { border-top:none; }
   .outcome .top { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -155,16 +159,13 @@
   <div class="card flush" id="mcResults" style="display:none">
     <div class="mc-grid">
       <div class="panel">
-        <h2 id="mcTitle">Average vote share</h2>
-        <p class="hint" id="mcSubtitle"></p>
-        <div class="key">
-          <span><span class="iqr rng"></span>Full range (min to max)</span>
+        <div class="mc-heading">
+          <img class="mc-heading-logo" src="https://raw.githubusercontent.com/Nowcast-EU/Spain/main/ES_logo.png" alt="Nowcast EU">
+          <div>
+            <h2 id="mcTitle">Average vote share</h2>
+            <p class="hint" id="mcSubtitle"></p>
+          </div>
         </div>
-        <div class="key" id="mcPrevKey" style="display:none">
-          <span><span class="sw proj"></span>Projected (mean of runs)</span>
-          <span><span class="sw prev"></span>Previous election</span>
-        </div>
-        <p class="hint" id="mcAliasNote" style="display:none;margin:0 0 8px"></p>
         <div class="chartbox short"><canvas id="mcChart"></canvas></div>
       </div>
       <div class="rightcol">
@@ -673,9 +674,6 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     const othersIdx = new Set(mc.parties.map((p, j) => isOthers(p) ? j : -1).filter(j => j >= 0));
     const hasPrev = stats.some(s => s.prev != null);
     const renamed = s => s.prev != null && s.prevName.toLowerCase() !== String(s.party).toLowerCase();
-    const aliasNote = stats.filter(renamed).map(s => `${esc(s.prevName)}'s previous result is shown for ${esc(s.party)}`);
-    $("mcAliasNote").style.display = aliasNote.length ? "" : "none";
-    $("mcAliasNote").innerHTML = aliasNote.length ? aliasNote.join("; ") + ": the same movement under a different name." : "";
 
     // --- seat outcomes
     const counts = new Map();
@@ -695,7 +693,6 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     $("mcTitle").textContent = name
       ? `Nowcast EU | ${name} constituency seat projection`
       : "Nowcast EU | Constituency seat projection";
-    $("mcPrevKey").style.display = hasPrev ? "" : "none";
     if (mcChart) mcChart.destroy();
     const effTh = threshold(seats);   // effective threshold (%) for this magnitude: 75 / (M + 1)
     const yMax = Math.max(...stats.map(s => Math.max(s.max, s.prev ?? 0)), effTh, 1);
@@ -713,7 +710,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
 
     mcChart = new Chart($("mcChart"), {
       type: "bar",
-      data: { labels: stats.map(s => renamed(s) ? [s.party, `(+/- ${s.prevName})`] : s.party), datasets },
+      data: { labels: stats.map(s => renamed(s) ? [s.party, `(vs. ${s.prevName})`] : s.party), datasets },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
         devicePixelRatio: chartDpr(),
