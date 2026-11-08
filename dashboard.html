@@ -139,9 +139,8 @@
     <div class="mc-grid">
       <div class="panel">
         <h2 id="mcTitle">Average vote share</h2>
-        <p class="hint">Bars show the mean across runs; the thick black line spans the interquartile range (25th–75th percentile), and the thin grey line behind it spans the full range (lowest to highest run). When a constituency is selected, the lighter, thinner bar behind each one is that party's result at the previous election, with a short tick marking its exact level.</p>
+        <p class="hint">Bars show the mean across runs; the thin line spans the full range (lowest to highest run).</p>
         <div class="key">
-          <span><span class="iqr"></span>Interquartile range</span>
           <span><span class="iqr rng"></span>Full range (min to max)</span>
         </div>
         <div class="key" id="mcPrevKey" style="display:none">
@@ -197,7 +196,7 @@
   const MC_BAR_MAX = 56;              // max thickness (px) of the projected bars in the Monte Carlo chart
   const PREV_ALPHA = 0.35;            // opacity of the previous-election comparison bar (lower = lighter)
   const PREV_WIDTH = 0.5;             // width of the comparison bar relative to the projected bar (0–1)
-  const PREV_TICK = true;             // draw a short tick at the previous-election value, so it stays visible when it sits behind the projected bar
+  const PREV_TICK = false;             // draw a short tick at the previous-election value, so it stays visible when it sits behind the projected bar
   // Previous election results, hard-coded. One row per constituency: name, seats (magnitude), then each party's vote share (%).
   // Party names must match the names in your Monte Carlo runs (case-insensitive), or be listed in PARTY_ALIASES below. Comma, semicolon or tab separated all work.
   // *** PLACEHOLDER VALUES: replace with the real results. ***
@@ -691,7 +690,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
               afterLabel: ctx => {
                 if (ctx.datasetIndex !== 0) return [];
                 const s = stats[ctx.dataIndex];
-                const out = [`Q1 (25th): ${s.q1.toFixed(1)}%`, `Q3 (75th): ${s.q3.toFixed(1)}%`, `IQR: ${(s.q3 - s.q1).toFixed(1)} pts`, `Min: ${s.min.toFixed(1)}%`, `Max: ${s.max.toFixed(1)}%`];
+                const out = [`Min: ${s.min.toFixed(1)}%`, `Max: ${s.max.toFixed(1)}%`];
                 if (s.prev != null) { const dlt = s.mean - s.prev; out.push(`Change vs previous: ${dlt >= 0 ? "+" : ""}${dlt.toFixed(1)} pts`); }
                 return out;
               }
@@ -736,15 +735,6 @@ if (hasPrev && PREV_TICK) {
             ctx.moveTo(bar.x, ylo); ctx.lineTo(bar.x, yhi);
             ctx.moveTo(bar.x - cap, ylo); ctx.lineTo(bar.x + cap, ylo);
             ctx.moveTo(bar.x - cap, yhi); ctx.lineTo(bar.x + cap, yhi);
-            ctx.stroke();
-          });
-          ctx.strokeStyle = "#1d1d1b"; ctx.lineWidth = 2.5; ctx.lineCap = "butt";
-          meta.data.forEach((bar, i) => {
-            const y1 = y.getPixelForValue(stats[i].q1), y3 = y.getPixelForValue(stats[i].q3), cap = 7;
-            ctx.beginPath();
-            ctx.moveTo(bar.x, y1); ctx.lineTo(bar.x, y3);
-            ctx.moveTo(bar.x - cap, y1); ctx.lineTo(bar.x + cap, y1);
-            ctx.moveTo(bar.x - cap, y3); ctx.lineTo(bar.x + cap, y3);
             ctx.stroke();
           });
           ctx.restore();
