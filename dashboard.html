@@ -743,7 +743,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           ctx.beginPath(); ctx.moveTo(chartArea.left, yh); ctx.lineTo(chartArea.right, yh); ctx.stroke();
           ctx.setLineDash([]); ctx.fillStyle = "#6b6b66"; ctx.font = "11px system-ui, sans-serif";
           ctx.textAlign = "right"; ctx.textBaseline = "bottom";
-          ctx.fillText(`Effective threshold ${effTh.toFixed(1)}% (M = ${seats})`, chartArea.left + 4, yh - 3);
+          ctx.fillText("est. effective threshold", chartArea.right - 4, yh - 3);
           ctx.restore();
         }
         
