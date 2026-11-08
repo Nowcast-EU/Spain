@@ -693,7 +693,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
 
     mcChart = new Chart($("mcChart"), {
       type: "bar",
-      data: { labels: stats.map(s => renamed(s) ? [s.party, `(prev. ${s.prevName})`] : s.party), datasets },
+      data: { labels: stats.map(s => renamed(s) ? [s.party, `(+/- ${s.prevName})`] : s.party), datasets },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
         devicePixelRatio: chartDpr(),
