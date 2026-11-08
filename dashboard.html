@@ -677,7 +677,8 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     $("mcTitle").textContent = name ? `${name}: average vote share` : "Average vote share";
     $("mcPrevKey").style.display = hasPrev ? "" : "none";
     if (mcChart) mcChart.destroy();
-    const yMax = Math.max(...stats.map(s => Math.max(s.max, s.prev ?? 0)), 1);
+    const effTh = threshold(seats);   // effective threshold (%) for this magnitude: 75 / (M + 1)
+    const yMax = Math.max(...stats.map(s => Math.max(s.max, s.prev ?? 0)), effTh, 1);
 
     // Projected bars are dataset 0 (drawn on top). The previous-election bars are dataset 1: thinner, lighter, and
     // drawn behind. grouped:false makes both datasets sit on the same x position instead of side by side.
@@ -731,6 +732,21 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           ctx.fillText(MC_THRESHOLD + "% legal threshold", chartArea.right - 4, yh - 3);
           ctx.restore();
         }
+
+              }, {
+        id: "effectiveThresholdLine",
+        afterDatasetsDraw(c) {
+          const { ctx, chartArea, scales: { y } } = c;
+          const yh = y.getPixelForValue(effTh);
+          ctx.save();
+          ctx.setLineDash([6, 4]); ctx.lineWidth = 1; ctx.strokeStyle = "#8a8a85";
+          ctx.beginPath(); ctx.moveTo(chartArea.left, yh); ctx.lineTo(chartArea.right, yh); ctx.stroke();
+          ctx.setLineDash([]); ctx.fillStyle = "#6b6b66"; ctx.font = "11px system-ui, sans-serif";
+          ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+          ctx.fillText(`Effective threshold ${effTh.toFixed(1)}% (M = ${seats})`, chartArea.left + 4, yh - 3);
+          ctx.restore();
+        }
+        
       }, {
         id: "prevOffset",
         // Shift the previous-election bars right by half the projected bar's width,
