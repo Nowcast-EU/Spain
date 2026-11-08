@@ -21,6 +21,7 @@
   select, button, input[type=text], input[type=number] { font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; }
   input[type=number] { width:80px; }
   input[type=text] { width:240px; }
+  select#mcConst { min-width:220px; }
   button.primary { background:var(--accent); color:#fff; border-color:var(--accent); cursor:pointer; }
   button { cursor:pointer; }
   .msg { font-size:13px; margin-top:8px; min-height:18px; }
@@ -30,6 +31,8 @@
   .chartbox.short { height:420px; }
   .key { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--muted); margin-bottom:8px; }
   .key span.sw { display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
+  .key span.sw.proj { background:#555; }
+  .key span.sw.prev { background:rgba(85,85,85,0.3); }
   .key span.dt { display:inline-block; width:18px; height:0; border-top:2px dotted #444; vertical-align:3px; margin-right:5px; }
   .key span.mk { display:inline-block; width:18px; height:0; border-top:3px solid var(--marker); vertical-align:3px; margin-right:5px; }
   .key span.iqr { display:inline-block; width:0; height:14px; border-left:2.5px solid #1d1d1b; vertical-align:-3px; margin-right:7px; }
@@ -121,13 +124,14 @@
     </div>
     <div class="msg" id="mcMsg"></div>
     <div class="row">
-      <label>Constituency <input type="text" id="mcName" value="Custom constituency"></label>
+      <label>Constituency <select id="mcConst"></select></label>
       <label>D'Hondt seats <input type="number" id="mcSeats" value="5" min="1" step="1"></label>
     </div>
     <details>
       <summary>Accepted formats</summary>
       <p>Either orientation is detected automatically. <b>Runs across columns:</b> the header row is run numbers (1, 2, 3… or "Run 1"…) and the first column is party names. <b>Runs down rows:</b> header row is party names, and an optional first column holds the run number. Cells are vote shares. Tab, semicolon or comma separated; % signs are fine; if every value is 1 or below they are treated as fractions and multiplied by 100. A run with a blank or non-numeric cell is skipped (the count is reported above).<br>
-      Seats are allocated per run by D'Hondt on the vote shares. In each run, a party below the 3% legal threshold (set by <code>MC_THRESHOLD</code>) wins no seats. A row or column named "Others" is always shown as the right-most bar and never receives seats. Parties that are 0.0 in every run are left out of the chart.</p>
+      Seats are allocated per run by D'Hondt on the vote shares. In each run, a party below the 3% legal threshold (set by <code>MC_THRESHOLD</code>) wins no seats. A row or column named "Others" is always shown as the right-most bar and never receives seats. Parties that are 0.0 in every run are left out of the chart.<br>
+      Choosing a constituency sets the D'Hondt seats to that constituency's magnitude from the hard-coded previous results table (<code>PREVIOUS_RESULTS</code> in the script; you can still overwrite the seats). <code>PARTY_ALIASES</code> maps a party to its name in that table (currently FrA ↔ Sumar), so the two are compared as the same movement and adds that constituency's previous result behind each party's bar.</p>
     </details>
   </div>
 
@@ -135,11 +139,16 @@
     <div class="mc-grid">
       <div class="panel">
         <h2 id="mcTitle">Average vote share</h2>
-        <p class="hint">Bars show the mean across runs; the thick black line spans the interquartile range (25th–75th percentile), and the thin grey line behind it spans the full range (lowest to highest run).</p>
+        <p class="hint">Bars show the mean across runs; the thick black line spans the interquartile range (25th–75th percentile), and the thin grey line behind it spans the full range (lowest to highest run). When a constituency is selected, the lighter, thinner bar behind each one is that party's result at the previous election, with a short tick marking its exact level.</p>
         <div class="key">
           <span><span class="iqr"></span>Interquartile range</span>
           <span><span class="iqr rng"></span>Full range (min to max)</span>
         </div>
+        <div class="key" id="mcPrevKey" style="display:none">
+          <span><span class="sw proj"></span>Projected (mean of runs)</span>
+          <span><span class="sw prev"></span>Previous election</span>
+        </div>
+        <p class="hint" id="mcAliasNote" style="display:none;margin:0 0 8px"></p>
         <div class="chartbox short"><canvas id="mcChart"></canvas></div>
         <div class="stats" id="mcStats"></div>
       </div>
@@ -170,6 +179,7 @@
     "PSOE":    "#EF1C27",
     "Vox":     "#63BE21",
     "FrA":   "#FFA500",
+    "Sumar":   "#F76BEE",   // FrA's predecessor name in the previous results (pink)
     "C-FV":   "#FFA500",
     "Podemos": "#7030A0",
     "SALF":     "#833C0C",
@@ -184,6 +194,73 @@
   const HARD_THRESHOLD = 3;           // legal threshold in %, drawn as a dotted line; set to null to hide
   const MC_TOP_N = 5;                 // how many seat outcomes to list in the Monte Carlo panel
   const MC_THRESHOLD = 3;             // legal threshold (%) for the Monte Carlo D'Hondt: parties below it win no seats in that run
+  const MC_BAR_MAX = 56;              // max thickness (px) of the projected bars in the Monte Carlo chart
+  const PREV_ALPHA = 0.35;            // opacity of the previous-election comparison bar (lower = lighter)
+  const PREV_WIDTH = 0.5;             // width of the comparison bar relative to the projected bar (0–1)
+  const PREV_TICK = true;             // draw a short tick at the previous-election value, so it stays visible when it sits behind the projected bar
+  // Previous election results, hard-coded. One row per constituency: name, seats (magnitude), then each party's vote share (%).
+  // Party names must match the names in your Monte Carlo runs (case-insensitive), or be listed in PARTY_ALIASES below. Comma, semicolon or tab separated all work.
+  // *** PLACEHOLDER VALUES: replace with the real results. ***
+  const PREVIOUS_RESULTS = `
+  
+Constituency	Seats	PSOE	PP	Vox	Sumar	Podemos	SALF	ERC	JxCat	EHB	PNV	BNG	Cca	UPN	Others
+A Coruña	8	28.2	43.1	5.0	12.2	0.0	0.0	0.0	0.0	0.0	0.0	10.0	0.0	0.0	1.5
+Álava	4	27.7	17.8	3.9	12.7	0.0	0.0	0	0	19.5	16.6	0	0	0	1.8
+Albacete	4	34.5	40	16.7	7.1	0.0	0.0	0	0	0	0	0	0	0	1.7
+Alicante	12	32	36.8	16.3	12.8	0.0	0.0	0	0	0	0	0	0	0	2.1
+Almería	6	29	41	21.4	6.6	0.0	0.0	0	0	0	0	0	0	0	2.0
+Asturias	7	34.4	35.6	12.5	14.9	0.0	0.0	0	0	0	0	0	0	0	2.6
+Ávila	3	27.3	43.4	15.4	5.1	0.0	0.0	0	0	0	0	0	0	0	8.8
+Badajoz	6	39.2	37.9	13.7	6.8	0.0	0.0	0	0	0	0	0	0	0	2.4
+Balearics	8	30.1	35.6	15.2	16.6	0.0	0.0	0	0	0	0	0	0	0	2.5
+Barcelona	32	35.7	13.7	7.6	15.2	0.0	0.0	12.3	9.7	0	0	0	0	0	5.8
+Biscay	8	25.8	11.5	2.6	10.9	0.0	0.0	0	0	20.7	27	0	0	0	1.5
+Burgos	4	34.5	40.7	12.8	8.6	0.0	0.0	0	0	0	0	0	0	0	3.4
+Cáceres	4	38.9	38.1	13.6	6.9	0.0	0.0	0	0	0	0	0	0	0	2.5
+Cádiz	8	33.2	34.8	15.2	12.8	0.0	0.0	0	0	0	0	0	0	0	4.0
+Cantabria	5	33.3	42.1	14.1	8.4	0.0	0.0	0	0	0	0	0	0	0	2.1
+Castellón	5	32.6	35.2	15.9	14.3	0.0	0.0	0	0	0	0	0	0	0	2.0
+Ceuta	1	34	38.8	23.3	2.4	0.0	0.0	0	0	0	0	0	0	0	1.5
+Ciudad Real	5	35.4	40.6	16.3	6.1	0.0	0.0	0	0	0	0	0	0	0	1.6
+Córdoba	6	32.1	37.9	14	13.7	0.0	0.0	0	0	0	0	0	0	0	2.3
+Cuenca	3	37.3	39.8	15.6	5.5	0.0	0.0	0	0	0	0	0	0	0	1.8
+Gipuzkoa	6	23.3	8.6	2.1	10.6	0.0	0.0	0	0	31.3	22.7	0	0	0	1.4
+Girona	6	28.9	9.7	7	11	0.0	0.0	14.7	19.6	0	0	0	0	0	9.1
+Granada	7	33	37	16.2	11.6	0.0	0.0	0	0	0	0	0	0	0	2.2
+Guadalajara	3	33	36.4	19.3	9.1	0.0	0.0	0	0	0	0	0	0	0	2.2
+Huelva	5	36	36.5	14.6	10.4	0.0	0.0	0	0	0	0	0	0	0	2.5
+Huesca	3	33.5	38.3	12.7	11.5	0.0	0.0	0	0	0	0	0	0	0	4.0
+Jaén	5	36.3	37.4	14.8	8	0.0	0.0	0	0	0	0	0	0	0	3.5
+La Rioja	4	35.7	45.7	9.7	6.5	0.0	0.0	0	0	0	0	0	0	0	2.4
+Las Palmas	8	33.2	25.9	14.6	10.2	0.0	0.0	0	0	0	0	0	6.3	0	9.8
+León	4	33.6	37	12.9	6.7	0.0	0.0	0	0	0	0	0	0	0	9.8
+Lleida	4	29.5	12.8	6.8	7.9	0.0	0.0	18.6	18	0	0	0	0	0	6.4
+Lugo	4	30.3	50.4	4.3	5.2	0.0	0.0	0	0	0	0	8.7	0	0	1.1
+Madrid	38	27.9	40.5	14	15.4	0.0	0.0	0	0	0	0	0	0	0	2.2
+Málaga	11	30.3	38.3	16.5	12.2	0.0	0.0	0	0	0	0	0	0	0	2.7
+Melilla	1	25.4	49.2	16	3	0.0	0.0	0	0	0	0	0	0	0	6.4
+Murcia	10	25.3	41.2	21.8	9.5	0.0	0.0	0	0	0	0	0	0	0	2.2
+Navarre	5	27.4	16.7	5.7	12.9	0.0	0.0	0	0	17.3	0	0	0	15.3	4.7
+Ourense	4	30.4	49.9	4.7	5.4	0.0	0.0	0	0	0	0	8.4	0	0	1.2
+Palencia	3	34.5	41.9	12.9	6	0.0	0.0	0	0	0	0	0	0	0	4.7
+Pontevedra	7	31.4	39.6	4.7	13.2	0.0	0.0	0	0	0	0	9.4	0	0	1.7
+Salamanca	4	30.4	47	14.7	5.5	0.0	0.0	0	0	0	0	0	0	0	2.4
+Santa Cruz	7	33.6	35.4	0	10.9	0.0	0.0	0	0	0	0	0	16.6	0	3.5
+Segovia	3	30.5	45.1	14.2	8	0.0	0.0	0	0	0	0	0	0	0	2.2
+Seville	12	36.6	33.4	13.3	14	0.0	0.0	0	0	0	0	0	0	0	2.7
+Soria	2	29.5	37.2	9.8	3.4	0.0	0.0	0	0	0	0	0	0	0	20.1
+Tarragona	6	32.9	13.9	10.4	11.3	0.0	0.0	15.1	11.1	0	0	0	0	0	5.3
+Teruel	3	29.2	35.1	13.1	5.4	0.0	0.0	0	0	0	0	0	0	0	17.2
+Toledo	6	32.5	37.9	19.7	8.2	0.0	0.0	0	0	0	0	0	0	0	1.7
+Valencia	15	32.1	33.7	15.2	16.8	0.0	0.0	0	0	0	0	0	0	0	2.2
+Valladolid	5	32.7	40.9	15.2	8.8	0.0	0.0	0	0	0	0	0	0	0	2.4
+Zamora	3	32.5	44.8	13.2	5.6	0.0	0.0	0	0	0	0	0	0	0	3.9
+Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
+
+`;
+  // Same movement under a different name: current name -> name used in PREVIOUS_RESULTS.
+  // The comparison bar for the key uses the previous name's colour and is annotated as such.
+  const PARTY_ALIASES = { "FrA": "Sumar" };
   const isOthers = p => /^others?$/i.test(String(p).trim());   // the "Others" row: always the right-most bar, never gets seats
   // =================================================================
 
@@ -214,6 +291,7 @@
 
   const $ = id => document.getElementById(id);
   const state = { rows: [], parties: [] };   // rows: {name, seats, shares:{party:value}}
+  const prev = { rows: [], parties: [] };    // previous election results, same shape as state
   let chart = null;
 
   // Effective threshold (%) for a district magnitude M: 75 / (M + 1)
@@ -415,6 +493,30 @@
   }
 
   // =================================================================
+  // Previous election results (hard-coded in PREVIOUS_RESULTS)
+  // =================================================================
+  // The row of the previous-results table currently chosen in the Monte Carlo dropdown (or null)
+  function selectedPrev() {
+    const v = $("mcConst").value;
+    return v === "" ? null : (prev.rows[Number(v)] || null);
+  }
+
+  // Use the chosen constituency's magnitude as the default number of D'Hondt seats
+  function applyConstSeats() {
+    const r = selectedPrev();
+    if (r && isFinite(r.seats) && r.seats >= 1) $("mcSeats").value = Math.floor(r.seats);
+  }
+
+  // Build the constituency dropdown from the hard-coded table
+  function initPrev() {
+    const res = parse(PREVIOUS_RESULTS.trim());
+    prev.rows = res.rows; prev.parties = res.parties;
+    $("mcConst").innerHTML = res.rows.map((r, i) => `<option value="${i}">${esc(r.name)}</option>`).join("");
+    $("mcConst").value = "0";
+    applyConstSeats();
+  }
+
+  // =================================================================
   // Monte Carlo
   // =================================================================
   const mc = { parties: [], runs: [] };   // runs: array of arrays, runs[r][partyIndex] = vote share
@@ -504,8 +606,20 @@
   function drawMC() {
     if (!mc.runs.length) return;
     const seats = Math.floor(Number($("mcSeats").value));
-    const name = $("mcName").value.trim() || "Custom constituency";
+    const selRow = selectedPrev();                 // previous-results row for the chosen constituency (or null)
+    const name = selRow ? selRow.name : "";
+    const label = name || "Projection";
     if (!isFinite(seats) || seats < 1) { setMcMsg("Enter a whole number of D'Hondt seats (1 or more).", true); return; }
+
+    // Previous-election result for a party in the chosen constituency: the party's own name first (case-insensitive),
+    // then its PARTY_ALIASES name (e.g. FrA -> Sumar). Returns { name: name used in the table, share } or nulls.
+    const prevMatch = p => {
+      if (!selRow) return { name: null, share: null };
+      const find = n => Object.keys(selRow.shares).find(k => k.toLowerCase() === String(n).toLowerCase());
+      const ak = Object.keys(PARTY_ALIASES).find(k => k.toLowerCase() === String(p).toLowerCase());
+      const k = find(p) || (ak ? find(PARTY_ALIASES[ak]) : undefined);
+      return k ? { name: k, share: selRow.shares[k] } : { name: null, share: null };
+    };
 
     const N = mc.runs.length;
 
@@ -513,13 +627,18 @@
     // Parties that are 0.0 in every run are dropped; "Others" is always placed last.
     const stats = mc.parties.map((p, j) => {
       const v = mc.runs.map(r => r[j]).sort((a, b) => a - b);
-      return { party: p, mean: v.reduce((s, x) => s + x, 0) / N, q1: pct(v, 0.25), q3: pct(v, 0.75), min: v[0], max: v[v.length - 1], j, allZero: v[v.length - 1] === 0 && v[0] === 0, others: isOthers(p) };
+      return { party: p, mean: v.reduce((s, x) => s + x, 0) / N, q1: pct(v, 0.25), q3: pct(v, 0.75), min: v[0], max: v[v.length - 1], j, allZero: v[v.length - 1] === 0 && v[0] === 0, others: isOthers(p), prev: prevMatch(p).share, prevName: prevMatch(p).name };
     }).filter(s => !s.allZero)
       .sort((a, b) => (a.others - b.others) || (b.mean - a.mean));
     const P = stats.length;
     if (!P) { setMcMsg("Every party is 0.0 in every run, so there is nothing to show.", true); $("mcResults").style.display = "none"; return; }
     const rank = new Map(stats.map((s, i) => [s.j, i]));
     const othersIdx = new Set(mc.parties.map((p, j) => isOthers(p) ? j : -1).filter(j => j >= 0));
+    const hasPrev = stats.some(s => s.prev != null);
+    const renamed = s => s.prev != null && s.prevName.toLowerCase() !== String(s.party).toLowerCase();
+    const aliasNote = stats.filter(renamed).map(s => `${esc(s.prevName)}'s previous result is shown for ${esc(s.party)}`);
+    $("mcAliasNote").style.display = aliasNote.length ? "" : "none";
+    $("mcAliasNote").innerHTML = aliasNote.length ? aliasNote.join("; ") + ": the same movement under a different name." : "";
 
     // --- seat outcomes
     const counts = new Map();
@@ -536,18 +655,29 @@
 
     // --- chart
     $("mcResults").style.display = "";
-    $("mcTitle").textContent = `${name}: average vote share`;
+    $("mcTitle").textContent = name ? `${name}: average vote share` : "Average vote share";
+    $("mcPrevKey").style.display = hasPrev ? "" : "none";
     if (mcChart) mcChart.destroy();
-    const yMax = Math.max(...stats.map(s => s.max), 1);
+    const yMax = Math.max(...stats.map(s => Math.max(s.max, s.prev ?? 0)), 1);
+
+    // Projected bars are dataset 0 (drawn on top). The previous-election bars are dataset 1: thinner, lighter, and
+    // drawn behind. grouped:false makes both datasets sit on the same x position instead of side by side.
+    const datasets = [{
+      label: "Mean vote share", data: stats.map(s => s.mean), backgroundColor: stats.map(s => partyColour(s.party)),
+      borderRadius: 2, maxBarThickness: MC_BAR_MAX, barPercentage: 0.9, grouped: false, order: 0
+    }];
+    if (hasPrev) datasets.push({
+      label: "Previous election", data: stats.map(s => s.prev), backgroundColor: stats.map(s => fade(partyColour(s.prevName || s.party), PREV_ALPHA)),
+      borderRadius: 2, maxBarThickness: MC_BAR_MAX * PREV_WIDTH, barPercentage: 0.9 * PREV_WIDTH, grouped: false, order: 1
+    });
+
     mcChart = new Chart($("mcChart"), {
       type: "bar",
-      data: {
-        labels: stats.map(s => s.party),
-        datasets: [{ label: "Mean vote share", data: stats.map(s => s.mean), backgroundColor: stats.map(s => partyColour(s.party)), borderRadius: 2, maxBarThickness: 56 }]
-      },
+      data: { labels: stats.map(s => renamed(s) ? [s.party, `(prev. ${s.prevName})`] : s.party), datasets },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
         devicePixelRatio: chartDpr(),
+        interaction: { mode: "index", intersect: false },
         scales: {
           y: { beginAtZero: true, suggestedMax: Math.ceil(yMax * 1.1), title: { display: true, text: "Vote share (%)" }, ticks: { callback: v => v + "%" } },
           x: { ticks: { autoSkip: false, font: { size: 12 } } }
@@ -555,9 +685,16 @@
         plugins: {
           legend: { display: false },
           tooltip: {
+            filter: item => item.raw != null,
             callbacks: {
-              label: ctx => `Mean: ${stats[ctx.dataIndex].mean.toFixed(1)}%`,
-              afterLabel: ctx => { const s = stats[ctx.dataIndex]; return [`Q1 (25th): ${s.q1.toFixed(1)}%`, `Q3 (75th): ${s.q3.toFixed(1)}%`, `IQR: ${(s.q3 - s.q1).toFixed(1)} pts`, `Min: ${s.min.toFixed(1)}%`, `Max: ${s.max.toFixed(1)}%`]; }
+              label: ctx => ctx.datasetIndex === 0 ? `Mean: ${stats[ctx.dataIndex].mean.toFixed(1)}%` : `Previous election${renamed(stats[ctx.dataIndex]) ? " (as " + stats[ctx.dataIndex].prevName + ")" : ""}: ${stats[ctx.dataIndex].prev.toFixed(1)}%`,
+              afterLabel: ctx => {
+                if (ctx.datasetIndex !== 0) return [];
+                const s = stats[ctx.dataIndex];
+                const out = [`Q1 (25th): ${s.q1.toFixed(1)}%`, `Q3 (75th): ${s.q3.toFixed(1)}%`, `IQR: ${(s.q3 - s.q1).toFixed(1)} pts`, `Min: ${s.min.toFixed(1)}%`, `Max: ${s.max.toFixed(1)}%`];
+                if (s.prev != null) { const dlt = s.mean - s.prev; out.push(`Change vs previous: ${dlt >= 0 ? "+" : ""}${dlt.toFixed(1)} pts`); }
+                return out;
+              }
             }
           }
         }
@@ -568,6 +705,15 @@
           const { ctx, scales: { y } } = c;
           const meta = c.getDatasetMeta(0);
           ctx.save();
+          // Previous-election tick: a short line across the thin bar at its exact value, drawn over the projected bar
+          if (hasPrev && PREV_TICK) {
+            ctx.strokeStyle = "rgba(29,29,27,0.55)"; ctx.lineWidth = 2; ctx.lineCap = "butt";
+            c.getDatasetMeta(1).data.forEach((bar, i) => {
+              const v = stats[i].prev; if (v == null) return;
+              const yy = y.getPixelForValue(v), half = bar.width / 2;
+              ctx.beginPath(); ctx.moveTo(bar.x - half, yy); ctx.lineTo(bar.x + half, yy); ctx.stroke();
+            });
+          }
           // Full range (min to max): thinner and lighter, drawn first so the IQR sits on top
           ctx.strokeStyle = "rgba(29,29,27,0.4)"; ctx.lineWidth = 1.25; ctx.lineCap = "butt";
           meta.data.forEach((bar, i) => {
@@ -599,7 +745,7 @@
 
     // --- outcomes list
     const topShare = top.length ? top[0].n / N * 100 : 0;
-    $("mcOutHint").textContent = `${name}, ${seats} seat${seats > 1 ? "s" : ""}. ${MC_THRESHOLD}% threshold applied; "Others" excluded. Each outcome is a full seat split; % = share of runs producing exactly that split.`;
+    $("mcOutHint").textContent = `${label}, ${seats} seat${seats > 1 ? "s" : ""}. ${MC_THRESHOLD}% threshold applied; "Others" excluded. Each outcome is a full seat split; % = share of runs producing exactly that split.`;
     $("mcOutcomes").innerHTML = top.map((o, i) => {
       const pills = o.alloc
         .map((n, j) => ({ n, j }))
@@ -662,6 +808,8 @@
     [chart, mcChart].forEach(c => { if (!c) return; c.options.devicePixelRatio = chartDpr(); c.resize(); });
   });
 
+  try { initPrev(); } catch (e) { setMcMsg("PREVIOUS_RESULTS: " + e.message, true); }
+
   $("load").addEventListener("click", load);
   $("example").addEventListener("click", () => { $("input").value = EXAMPLE; load(); });
   $("party").addEventListener("change", draw);
@@ -671,7 +819,7 @@
   $("mcLoad").addEventListener("click", loadMC);
   $("mcExample").addEventListener("click", () => { $("mcInput").value = mcExampleText(); loadMC(); });
   $("mcInput").addEventListener("paste", () => setTimeout(loadMC, 0));
-  $("mcName").addEventListener("input", drawMC);
+  $("mcConst").addEventListener("change", () => { applyConstSeats(); drawMC(); });
   $("mcSeats").addEventListener("input", drawMC);
 })();
 </script>
