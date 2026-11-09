@@ -138,7 +138,7 @@
   <!-- ============ Monte Carlo ============ -->
   <div class="card">
     <h2>3. Monte Carlo runs</h2>
-    <textarea id="mcInput" spellcheck="false" placeholder="Paste your simulation runs (about 1,000).&#10;&#10;Runs across columns:  Constituency | 1 | 2 | 3 | ... | 1000   (then one row per party)&#10;Runs down the rows:    Constituency | PP | PSOE | Vox | ...   (then one row per run)"></textarea>
+    <textarea id="mcInput" spellcheck="false" placeholder="Paste one or more simulation runs.&#10;&#10;Runs across columns:  Constituency | 1 | 2 | 3 | ... | 1000   (then one row per party)&#10;Runs down the rows:    Constituency | PP | PSOE | Vox | ...   (then one row per run)"></textarea>
     <div class="row">
       <button class="primary" id="mcLoad">Load runs</button>
       <button id="mcExample">Load dummy runs (1,000)</button>
@@ -150,7 +150,7 @@
     </div>
     <details>
       <summary>Accepted formats</summary>
-      <p>Either orientation is detected automatically. <b>Runs across columns:</b> the header row is run numbers (1, 2, 3… or "Run 1"…) and the first column is party names. <b>Runs down rows:</b> header row is party names, and an optional first column holds the run number. Cells are vote shares. Tab, semicolon or comma separated; % signs are fine; if every value is 1 or below they are treated as fractions and multiplied by 100. A run with a blank or non-numeric cell is skipped (the count is reported above).<br>
+      <p>Either orientation is detected automatically. A single run is supported. <b>Runs across columns:</b> the header row is run numbers (1, 2, 3… or "Run 1"…) and the first column is party names. <b>Runs down rows:</b> header row is party names, and an optional first column holds the run number. Cells are vote shares. Tab, semicolon or comma separated; % signs are fine; if every value is 1 or below they are treated as fractions and multiplied by 100. A run with a blank or non-numeric cell is skipped (the count is reported above).<br>
       Seats are allocated per run by D'Hondt on the vote shares. In each run, a party below the 3% legal threshold (set by <code>MC_THRESHOLD</code>) wins no seats. A row or column named "Others" is always shown as the right-most bar and never receives seats. Parties that are 0.0 in every run are left out of the chart.<br>
       Choosing a constituency sets the D'Hondt seats to that constituency's magnitude from the hard-coded previous results table (<code>PREVIOUS_RESULTS</code> in the script; you can still overwrite the seats). <code>PARTY_ALIASES</code> maps a party to its name in that table (currently FrA ↔ Sumar), so the two are compared as the same movement and adds that constituency's previous result behind each party's bar.</p>
     </details>
@@ -169,8 +169,8 @@
         <div class="chartbox short"><canvas id="mcChart"></canvas></div>
       </div>
       <div class="rightcol">
-      <div class="panel">
-        <h2>Most likely seat outcomes</h2>
+      <div class="panel" id="mcOutcomesPanel">
+        <h2 id="mcOutcomesTitle">Most likely seat outcomes</h2>
         <div class="coverage" id="mcCoverage"></div>
         <div id="mcOutcomes"></div>
       </div>
@@ -557,7 +557,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     const constituency = /^(run|runs|party|parties|constituency|#)?$/i.test(cell0) ? "" : cell0;
     const headRuns = head.slice(1);
 
-    if (headRuns.length > 1 && headRuns.every(isRunLabel)) {
+    if (headRuns.length > 0 && headRuns.every(isRunLabel)) {
       // runs across the columns, parties down the rows
       orientation = "runs across columns";
       parties = []; const cols = [];
@@ -690,6 +690,8 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
 
     // --- chart
     $("mcResults").style.display = "";
+    $("mcOutcomesPanel").style.display = "";
+    $("mcOutcomesTitle").textContent = N === 1 ? "Projected seat allocation" : "Most likely seat outcomes";
     $("mcTitle").textContent = name
       ? `Nowcast EU | ${name} constituency seat projection`
       : "Nowcast EU | Constituency seat projection";
@@ -798,6 +800,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       }, {
         id: "iqrWhiskers",
         afterDatasetsDraw(c) {
+          if (N === 1) return;
           const { ctx, scales: { y } } = c;
           const meta = c.getDatasetMeta(0);
           ctx.save();
@@ -828,23 +831,35 @@ if (hasPrev && PREV_TICK) {
     });
 
     // --- outcomes list
-    const topShare = top.length ? top[0].n / N * 100 : 0;
-    $("mcOutcomes").innerHTML = top.map((o, i) => {
-      const pills = o.alloc
+    if (N === 1) {
+      const allocation = top[0].alloc
         .map((n, j) => ({ n, j }))
         .filter(x => x.n > 0)
         .sort((a, b) => b.n - a.n || rank.get(a.j) - rank.get(b.j))
         .map(x => { const col = partyColour(mc.parties[x.j]); return `<span class="pill" style="background:${col};color:${textOn(col)}">${esc(mc.parties[x.j])} ${x.n}</span>`; })
         .join("") || `<span class="pill" style="background:#eceee9;color:#6b6b66">No seats allocated</span>`;
-      const pc = o.n / N * 100;
-      return `<div class="outcome">
-        <div class="top"><span class="rank">#${i + 1}</span><div class="pills">${pills}</div>
-        <span class="pct">${pc.toFixed(1)}% <small>(${o.n.toLocaleString()} runs)</small></span></div>
-        <div class="bar"><i style="width:${topShare ? (pc / topShare * 100).toFixed(1) : 0}%"></i></div>
-      </div>`;
-    }).join("");
-    const covered = top.reduce((s, o) => s + o.n, 0) / N * 100;
-    $("mcCoverage").textContent = `Top ${top.length} of ${outcomes.length.toLocaleString()} distinct outcome${outcomes.length > 1 ? "s" : ""} cover ${covered.toFixed(1)}% of runs. Bars are scaled to the most likely outcome.`;
+      $("mcCoverage").style.display = "none";
+      $("mcOutcomes").innerHTML = `<div class="pills">${allocation}</div>`;
+    } else {
+      $("mcCoverage").style.display = "";
+      const topShare = top.length ? top[0].n / N * 100 : 0;
+      $("mcOutcomes").innerHTML = top.map((o, i) => {
+        const pills = o.alloc
+          .map((n, j) => ({ n, j }))
+          .filter(x => x.n > 0)
+          .sort((a, b) => b.n - a.n || rank.get(a.j) - rank.get(b.j))
+          .map(x => { const col = partyColour(mc.parties[x.j]); return `<span class="pill" style="background:${col};color:${textOn(col)}">${esc(mc.parties[x.j])} ${x.n}</span>`; })
+          .join("") || `<span class="pill" style="background:#eceee9;color:#6b6b66">No seats allocated</span>`;
+        const pc = o.n / N * 100;
+        return `<div class="outcome">
+          <div class="top"><span class="rank">#${i + 1}</span><div class="pills">${pills}</div>
+          <span class="pct">${pc.toFixed(1)}% <small>(${o.n.toLocaleString()} runs)</small></span></div>
+          <div class="bar"><i style="width:${topShare ? (pc / topShare * 100).toFixed(1) : 0}%"></i></div>
+        </div>`;
+      }).join("");
+      const covered = top.reduce((s, o) => s + o.n, 0) / N * 100;
+      $("mcCoverage").textContent = `Top ${top.length} of ${outcomes.length.toLocaleString()} distinct outcome${outcomes.length > 1 ? "s" : ""} cover ${covered.toFixed(1)}% of runs. Bars are scaled to the most likely outcome.`;
+    }
     // --- closest seat to flipping, from the average vote shares
     // Mean shares with the same eligibility rules as the per-run allocation (Others and sub-threshold parties get 0).
     const means = new Array(mc.parties.length).fill(0);
