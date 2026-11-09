@@ -147,12 +147,19 @@
     <div class="row">
       <label>Constituency <select id="mcConst"></select></label>
       <label>D'Hondt seats <input type="number" id="mcSeats" value="5" min="1" step="1"></label>
+      <label>Sort chart by
+        <select id="mcSort">
+          <option value="projected">Projected result</option>
+          <option value="previous">Previous result</option>
+        </select>
+      </label>
     </div>
     <details>
       <summary>Accepted formats</summary>
       <p>Either orientation is detected automatically. A single run is supported. <b>Runs across columns:</b> the header row is run numbers (1, 2, 3… or "Run 1"…) and the first column is party names. <b>Runs down rows:</b> header row is party names, and an optional first column holds the run number. Cells are vote shares. Tab, semicolon or comma separated; % signs are fine; if every value is 1 or below they are treated as fractions and multiplied by 100. A run with a blank or non-numeric cell is skipped (the count is reported above).<br>
       Seats are allocated per run by D'Hondt on the vote shares. In each run, a party below the 3% legal threshold (set by <code>MC_THRESHOLD</code>) wins no seats. A row or column named "Others" is always shown as the right-most bar and never receives seats. Parties that are 0.0 in every run are left out of the chart.<br>
       Choosing a constituency sets the D'Hondt seats to that constituency's magnitude from the hard-coded previous results table (<code>PREVIOUS_RESULTS</code> in the script; you can still overwrite the seats). <code>PARTY_ALIASES</code> maps a party to its name in that table (currently FrA ↔ Sumar), so the two are compared as the same movement and adds that constituency's previous result behind each party's bar.</p>
+      <p>The chart can be sorted by projected result or previous result. When sorting by previous result, parties with a non-zero previous result appear first in descending order; parties with no previous result or a 0% previous result follow, sorted by projected result. "Others" remains last.</p>
     </details>
   </div>
 
@@ -201,6 +208,7 @@
     "Junts":   "#00C3B2",
     "PNV":     "#1B7F3B",
     "Bildu":   "#B5CF18",
+    "AA":   "#008500",
     "Others":  "#9aa0a6"
   };
   const DEFAULT_COLOUR = "#1f6fb2";   // used for any party not listed above
@@ -666,8 +674,14 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     const stats = mc.parties.map((p, j) => {
       const v = mc.runs.map(r => r[j]).sort((a, b) => a - b);
       return { party: p, mean: v.reduce((s, x) => s + x, 0) / N, q1: pct(v, 0.25), q3: pct(v, 0.75), min: v[0], max: v[v.length - 1], j, allZero: v[v.length - 1] === 0 && v[0] === 0, others: isOthers(p), prev: prevMatch(p).share, prevName: prevMatch(p).name };
-    }).filter(s => !s.allZero)
-      .sort((a, b) => (a.others - b.others) || (b.mean - a.mean));
+    }).filter(s => !s.allZero);
+    const sortByPrevious = $("mcSort").value === "previous";
+    const hasPreviousShare = s => s.prev != null && s.prev > 0;
+    stats.sort((a, b) => (a.others - b.others) || (
+      sortByPrevious
+        ? (Number(hasPreviousShare(b)) - Number(hasPreviousShare(a))) || (hasPreviousShare(a) && hasPreviousShare(b) ? b.prev - a.prev : 0) || (b.mean - a.mean)
+        : b.mean - a.mean
+    ));
     const P = stats.length;
     if (!P) { setMcMsg("Every party is 0.0 in every run, so there is nothing to show.", true); $("mcResults").style.display = "none"; return; }
     const rank = new Map(stats.map((s, i) => [s.j, i]));
@@ -934,6 +948,7 @@ if (hasPrev && PREV_TICK) {
   $("mcInput").addEventListener("paste", () => setTimeout(loadMC, 0));
   $("mcConst").addEventListener("change", () => { applyConstSeats(); drawMC(); });
   $("mcSeats").addEventListener("input", drawMC);
+  $("mcSort").addEventListener("change", drawMC);
 })();
 </script>
 </body>
