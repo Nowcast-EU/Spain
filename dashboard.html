@@ -42,7 +42,7 @@
   details { font-size:13px; color:var(--muted); margin-top:10px; }
 
   /* Monte Carlo seat outcomes */
-  .mc-grid { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:16px; align-items:stretch; }
+  .mc-grid { display:grid; grid-template-columns:minmax(0,var(--mc-chart-share,61.5fr)) minmax(0,var(--mc-stats-share,38.5fr)); gap:16px; align-items:stretch; }
   @media (max-width: 900px) { .mc-grid { grid-template-columns:1fr; } }
   .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
   .mc-grid > .panel { display:flex; flex-direction:column; }
@@ -56,6 +56,9 @@
   }
   .panel h2 { font-size:15px; margin:0 0 4px; }
   .panel .hint { font-size:12.5px; color:var(--muted); margin:0 0 12px; }
+  .mc-layout-control { width:min(100%,520px); }
+  .mc-layout-control input { flex:1; min-width:140px; accent-color:var(--accent); }
+  .mc-layout-control output { min-width:104px; text-align:right; font-variant-numeric:tabular-nums; }
   .mc-heading { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
   .mc-heading-logo { width:auto; height:48px; flex:none; }
   #mcTitle { font-size:20px; line-height:24px; margin:0 0 4px; }
@@ -124,6 +127,7 @@
           <option value="name">Name (A–Z)</option>
         </select>
       </label>
+      <label><input type="checkbox" id="hideZero"> Hide constituencies where the selected party is at 0%</label>
     </div>
     <div class="key">
       <span><span class="sw" id="swOn"></span>At or above effective threshold</span>
@@ -152,6 +156,12 @@
           <option value="projected">Projected result</option>
           <option value="previous">Previous result</option>
         </select>
+      </label>
+    </div>
+    <div class="row">
+      <label class="mc-layout-control">Chart / stats width
+        <input type="range" id="mcLayoutSlider" min="25" max="75" step="any" value="61.5384615385" aria-label="Monte Carlo chart width relative to stats panel">
+        <output id="mcLayoutValue" for="mcLayoutSlider">61.5% / 38.5%</output>
       </label>
     </div>
     <details>
@@ -471,7 +481,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
   function draw() {
     const party = $("party").value;
     if (!party) return;
-    const data = sorted(state.rows, party);
+    const data = sorted(state.rows, party).filter(d => !$("hideZero").checked || d.share !== 0);
     const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
     const labels = data.map(d => `${d.name} (${d.seats})`);
     const base = partyColour(party);
@@ -481,17 +491,18 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     $("hardKey").style.display = HARD_THRESHOLD != null ? "" : "none";
     $("hardKeyText").textContent = HARD_THRESHOLD + "% legal threshold";
     const yMax = Math.max(...data.map(d => Math.max(d.share, d.thr)), HARD_THRESHOLD || 0, 1);
+    const maxBarThickness = Math.min(56, Math.max(6, 1200 / Math.max(data.length, 1)));
 
     if (chart) chart.destroy();
     chart = new Chart($("chart"), {
       type: "bar",
-      data: { labels, datasets: [{ label: party + " vote share", data: data.map(d => d.share), backgroundColor: colours, borderRadius: 2, maxBarThickness: 28 }] },
+      data: { labels, datasets: [{ label: party + " vote share", data: data.map(d => d.share), backgroundColor: colours, borderRadius: 2, maxBarThickness }] },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
         devicePixelRatio: chartDpr(),
         scales: {
-          y: { beginAtZero: true, suggestedMax: Math.ceil(yMax * 1.08), title: { display: true, text: "Vote share (%)" }, ticks: { callback: v => v + "%" } },
-          x: { ticks: { autoSkip: false, maxRotation: 90, minRotation: 60, font: { size: 11 } }, title: { display: true, text: "Constituency (seats)" } }
+          y: { beginAtZero: true, suggestedMax: Math.ceil(yMax * 1.08), title: { display: true, text: "Vote share (%)" }, ticks: { callback: v => v + "%" }, grid: { display: false, drawTicks: true } },
+          x: { ticks: { autoSkip: false, maxRotation: 90, minRotation: 60, font: { size: 11 } }, title: { display: true, text: "Constituency (seats)" }, grid: { display: false, drawTicks: true } }
         },
         plugins: {
           legend: { display: false },
@@ -510,6 +521,11 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     });
     chart.$thr = data.map(d => d.thr);
     chart.update("none");
+
+    if (!data.length) {
+      $("stats").textContent = "No constituencies to display for this party.";
+      return;
+    }
 
     const above = data.filter(d => d.margin >= 0).length;
     $("stats").innerHTML =
@@ -941,6 +957,7 @@ if (hasPrev && PREV_TICK) {
   $("example").addEventListener("click", () => { $("input").value = EXAMPLE; load(); });
   $("party").addEventListener("change", draw);
   $("sort").addEventListener("change", draw);
+  $("hideZero").addEventListener("change", draw);
   $("input").addEventListener("paste", () => setTimeout(load, 0));
 
   $("mcLoad").addEventListener("click", loadMC);
@@ -949,6 +966,13 @@ if (hasPrev && PREV_TICK) {
   $("mcConst").addEventListener("change", () => { applyConstSeats(); drawMC(); });
   $("mcSeats").addEventListener("input", drawMC);
   $("mcSort").addEventListener("change", drawMC);
+  $("mcLayoutSlider").addEventListener("input", () => {
+    const chartShare = Number($("mcLayoutSlider").value);
+    const grid = $("mcResults").querySelector(".mc-grid");
+    grid.style.setProperty("--mc-chart-share", chartShare + "fr");
+    grid.style.setProperty("--mc-stats-share", (100 - chartShare) + "fr");
+    $("mcLayoutValue").textContent = `${chartShare.toFixed(1)}% / ${(100 - chartShare).toFixed(1)}%`;
+  });
 })();
 </script>
 </body>
