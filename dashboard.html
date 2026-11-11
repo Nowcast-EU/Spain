@@ -30,6 +30,17 @@
   .chartbox { position:relative; height:650px; }
   .chartbox.short { height:420px; }
   .key { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--muted); margin-bottom:8px; }
+  .chart-topline { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:8px; }
+  .chart-topline .key { flex:1; margin:0; }
+  .chart-heading { display:flex; align-items:center; gap:12px; flex:none; }
+  .chart-heading-copy { text-align:right; }
+  .chart-heading h3 { font-size:20px; line-height:24px; margin:0 0 4px; }
+  .chart-heading p { font-size:15px; line-height:20px; color:var(--muted); margin:0; }
+  .chart-heading-logo { width:auto; height:48px; flex:none; }
+  @media (max-width: 700px) {
+    .chart-topline { align-items:flex-start; flex-direction:column-reverse; gap:12px; }
+    .chart-heading { align-self:flex-end; }
+  }
   .key span.sw { display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:-1px; margin-right:5px; }
   .key span.sw.proj { background:#555; }
   .key span.sw.prev { background:rgba(85,85,85,0.3); }
@@ -129,11 +140,20 @@
       </label>
       <label><input type="checkbox" id="hideZero"> Hide constituencies where the selected party is at 0%</label>
     </div>
-    <div class="key">
-      <span><span class="sw" id="swOn"></span>At or above effective threshold</span>
-      <span><span class="sw" id="swOff"></span>Below effective threshold</span>
-      <span><span class="mk"></span>Effective threshold = 75% ÷ (M + 1)</span>
-      <span id="hardKey"><span class="dt"></span><span id="hardKeyText"></span></span>
+    <div class="chart-topline">
+      <div class="key">
+        <span><span class="sw" id="swOn"></span>At or above effective threshold</span>
+        <span><span class="sw" id="swOff"></span>Below effective threshold</span>
+        <span><span class="mk"></span>Effective threshold = 75% ÷ (M + 1)</span>
+        <span id="hardKey"><span class="dt"></span><span id="hardKeyText"></span></span>
+      </div>
+      <div class="chart-heading">
+        <div class="chart-heading-copy">
+          <h3>Congress of Deputies Projection</h3>
+          <p id="projectionSubtitle"></p>
+        </div>
+        <img class="chart-heading-logo" src="https://raw.githubusercontent.com/Nowcast-EU/Spain/main/ES_logo.png" alt="Nowcast EU">
+      </div>
     </div>
     <div class="chartbox"><canvas id="chart"></canvas></div>
     <div class="stats" id="stats"></div>
@@ -325,7 +345,9 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
   const dateParts = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" })
     .formatToParts(new Date())
     .reduce((parts, part) => { parts[part.type] = part.value; return parts; }, {});
-  $("mcSubtitle").textContent = `Based on Spanish polling averages • ${dateParts.day} ${dateParts.month}, ${dateParts.year}`;
+  const pollingSubtitle = `Based on Spanish polling averages • ${dateParts.day} ${dateParts.month}, ${dateParts.year}`;
+  $("mcSubtitle").textContent = pollingSubtitle;
+  $("projectionSubtitle").textContent = pollingSubtitle;
   const state = { rows: [], parties: [] };   // rows: {name, seats, shares:{party:value}}
   const prev = { rows: [], parties: [] };    // previous election results, same shape as state
   let chart = null;
