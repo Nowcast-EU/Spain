@@ -30,7 +30,7 @@
   .chartbox { position:relative; height:650px; }
   .chartbox.short { height:420px; }
   .key { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--muted); margin-bottom:8px; }
-  .key .threshold-key { flex-basis:100%; }
+  .key .threshold-keys { display:flex; flex-basis:100%; flex-wrap:wrap; gap:16px; }
   .chart-topline { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:8px; }
   .chart-topline .key { flex:1; margin:0; }
   .chart-heading { display:flex; align-items:center; gap:12px; flex:none; }
@@ -145,8 +145,10 @@
       <div class="key">
         <span><span class="sw" id="swOn"></span>At or above effective threshold</span>
         <span><span class="sw" id="swOff"></span>Below effective threshold</span>
-        <span class="threshold-key"><span class="mk"></span>Effective threshold = 75% ÷ (M + 1)</span>
-        <span id="hardKey"><span class="dt"></span><span id="hardKeyText"></span></span>
+        <span class="threshold-keys">
+          <span><span class="mk"></span>Effective threshold = 75% ÷ (M + 1)</span>
+          <span id="hardKey"><span class="dt"></span><span id="hardKeyText"></span></span>
+        </span>
       </div>
       <div class="chart-heading">
         <div class="chart-heading-copy">
