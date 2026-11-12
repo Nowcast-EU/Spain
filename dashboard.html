@@ -259,6 +259,8 @@
       <label for="countrySeatCombine"><input type="checkbox" id="countrySeatCombine"> Combine selected parties</label>
       <label for="countrySeatBinSize">Seats per bin</label>
       <input type="number" id="countrySeatBinSize" value="10" min="1" max="100" step="1" aria-label="Seats per histogram bin">
+      <label for="countrySeatAxisMin">X-axis minimum</label>
+      <input type="number" id="countrySeatAxisMin" value="0" min="0" step="1" aria-label="Minimum projected seats on horizontal axis">
       <label for="countrySeatAxisMax">X-axis maximum</label>
       <input type="number" id="countrySeatAxisMax" value="400" min="1" step="1" aria-label="Maximum projected seats on horizontal axis">
       <label for="countrySeatTickSpacing">Seats between X-axis ticks</label>
@@ -269,6 +271,16 @@
         <input type="range" id="countrySeatCurveSmoothness" min="0" max="100" step="5" value="60" aria-label="Bell curve smoothness">
         <output id="countrySeatCurveSmoothnessValue" for="countrySeatCurveSmoothness">60%</output>
       </label>
+    </div>
+    <div class="chart-topline">
+      <div></div>
+      <div class="chart-heading">
+        <div class="chart-heading-copy">
+          <h3>Nowcast EU | Congress of Deputies Projection</h3>
+          <p>Based on Spanish polling averages • 12 November, 2026</p>
+        </div>
+        <img class="chart-heading-logo" src="https://raw.githubusercontent.com/Nowcast-EU/Spain/main/ES_logo.png" alt="Nowcast EU">
+      </div>
     </div>
     <div class="chartbox seat-distribution"><canvas id="countrySeatChart" role="img" aria-label="Probability distribution of the selected party's projected seats"></canvas></div>
   </div>
@@ -645,6 +657,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
   let mcChart = null;
   const COUNTRY_SEAT_MAX = 350;
   const countrySeatMC = { parties: [], runs: [] };   // runs[r][partyIndex] = seats won
+  let countrySeatPartySelectionOrder = [];
   let countrySeatChart = null;
   Chart.register({
     id: "countrySeatMajority",
@@ -664,7 +677,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       ctx.font = "italic 12px system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText("majority", markerX + 5, chartArea.top + 4);
+      ctx.fillText("majority", markerX + 5, chartArea.top + 1);
       ctx.restore();
     }
   },   {
@@ -693,7 +706,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       ctx.beginPath();
       ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
       ctx.clip();
-      ctx.font = "600 12px system-ui, sans-serif";
+      ctx.font = "600 14px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       options.items.forEach((item, k) => {
@@ -702,7 +715,11 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         const right = Math.min(chartArea.right, x.getPixelForValue(item.q3));
         if (right <= left) return;
         ctx.fillStyle = item.textColor;
-        ctx.fillText(item.rangeLabel, (left + right) / 2, chartArea.top + 4 + k * 16);  // stack labels so they don't collide
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#f8faf9";
+        ctx.strokeText(item.rangeLabel, (left + right) / 2, chartArea.top + 10 + k * 18);
+        ctx.fillText(item.rangeLabel, (left + right) / 2, chartArea.top + 10 + k * 18);
       });
       ctx.restore();
     }
@@ -760,8 +777,10 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     m.className = "msg " + (err ? "err" : "ok");
   }
 
-    const selectedCountryParties = () =>
-    [...$("countrySeatParty").querySelectorAll("input:checked")].map(i => Number(i.value));
+  const selectedCountryParties = () =>
+    countrySeatPartySelectionOrder.filter(index =>
+      $("countrySeatParty").querySelector(`input[value="${index}"]:checked`)
+    );
 
   function updateCountryPartySummary() {
     const names = selectedCountryParties().map(i => countrySeatMC.parties[i]);
@@ -773,11 +792,15 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     try {
       const res = parseCountrySeatMC($("countrySeatInput").value);
       // remember which parties were ticked (by name) before the data is replaced
-      const previouslySelected = new Set(selectedCountryParties().map(i => countrySeatMC.parties[i]));
+      const previouslySelected = selectedCountryParties().map(i => countrySeatMC.parties[i]);
       countrySeatMC.parties = res.parties;
       countrySeatMC.runs = res.runs;
-      const keep = res.parties.map(p => previouslySelected.has(p));
+      const keep = res.parties.map(p => previouslySelected.includes(p));
       if (!keep.some(Boolean)) keep[0] = true;   // default: first party ticked
+      countrySeatPartySelectionOrder = previouslySelected
+        .map(party => res.parties.indexOf(party))
+        .filter(index => index >= 0);
+      if (!countrySeatPartySelectionOrder.length && keep[0]) countrySeatPartySelectionOrder = [0];
       $("countrySeatParty").innerHTML = res.parties.map((party, index) =>
         `<label><input type="checkbox" value="${index}"${keep[index] ? " checked" : ""}>` +
         `<span class="pm-sw" style="background:${partyColour(party)}"></span>${esc(party)}</label>`
@@ -799,9 +822,18 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       setCountrySeatMsg("Seats per bin must be a whole number between 1 and 100.", true);
       return;
     }
+    const axisMin = Number($("countrySeatAxisMin").value);
+    if (!Number.isInteger(axisMin) || axisMin < 0) {
+      setCountrySeatMsg("The X-axis minimum must be a non-negative whole number.", true);
+      return;
+    }
     const axisMax = Number($("countrySeatAxisMax").value);
     if (!Number.isInteger(axisMax) || axisMax < 1) {
       setCountrySeatMsg("The X-axis maximum must be a positive whole number.", true);
+      return;
+    }
+    if (axisMin >= axisMax) {
+      setCountrySeatMsg("The X-axis minimum must be less than its maximum.", true);
       return;
     }
     const tickSpacing = Number($("countrySeatTickSpacing").value);
@@ -851,7 +883,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       bins.forEach(bin => {
         const chance = bin.count / runCount * 100;
         if (chance < 0.1) return;
-        const end = Math.min(bin.start + binSize - 1, maxCombinedSeats);
+        const end = bin.start + binSize - 1;
         const x = (bin.start + end) / 2;
         partyIndices.forEach((partyIndex, index) => {
           const contributionShare = bin.count
@@ -1051,7 +1083,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         interaction: { mode: "x", intersect: false },
         scales: {
           x: {
-            type: "linear", min: 0, max: axisMax, offset: false,
+            type: "linear", min: axisMin, max: axisMax, offset: false,
             title: { display: true, text: "Projected seats" },
             ticks: { stepSize: tickSpacing, precision: 0, autoSkip: false },
             grid: { drawOnChartArea: false, drawTicks: true }
@@ -1537,13 +1569,22 @@ if (hasPrev && PREV_TICK) {
     loadCountrySeatMC();
   });
   $("countrySeatInput").addEventListener("paste", () => setTimeout(loadCountrySeatMC, 0));
-  $("countrySeatParty").addEventListener("change", drawCountrySeatMC);
+  $("countrySeatParty").addEventListener("change", event => {
+    const checkbox = event.target;
+    if (checkbox instanceof HTMLInputElement && checkbox.type === "checkbox") {
+      const partyIndex = Number(checkbox.value);
+      countrySeatPartySelectionOrder = countrySeatPartySelectionOrder.filter(index => index !== partyIndex);
+      if (checkbox.checked) countrySeatPartySelectionOrder.push(partyIndex);
+    }
+    drawCountrySeatMC();
+  });
   $("countrySeatCombine").addEventListener("change", drawCountrySeatMC);
     document.addEventListener("click", e => {
     const m = $("countrySeatPartyMenu");
     if (m.open && !m.contains(e.target)) m.open = false;
   });
   $("countrySeatBinSize").addEventListener("change", drawCountrySeatMC);
+  $("countrySeatAxisMin").addEventListener("change", drawCountrySeatMC);
   $("countrySeatAxisMax").addEventListener("change", drawCountrySeatMC);
   $("countrySeatTickSpacing").addEventListener("change", drawCountrySeatMC);
   $("countrySeatBellCurve").addEventListener("change", () => {
