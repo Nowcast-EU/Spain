@@ -249,13 +249,14 @@
 
   <div class="card" id="countrySeatResults" style="display:none">
     <h2>Nationwide seat distribution</h2>
-    <p class="hint">The chart shows how often the selected party wins each range of seats. The dashed line marks the 175-seat majority.</p>
+    <p class="hint">Compare selected parties' seat distributions, or combine them across runs. Combined bars are segmented by each party's share of seats in that range. The dashed line marks the 175-seat majority.</p>
     <div class="row">
       <span style="font-size:13px;color:var(--muted)">Parties</span>
 <details id="countrySeatPartyMenu" class="party-menu">
   <summary id="countrySeatPartySummary">Select parties</summary>
   <div id="countrySeatParty" class="party-menu-list" role="group" aria-label="Select parties"></div>
 </details>
+      <label for="countrySeatCombine"><input type="checkbox" id="countrySeatCombine"> Combine selected parties</label>
       <label for="countrySeatBinSize">Seats per bin</label>
       <input type="number" id="countrySeatBinSize" value="10" min="1" max="100" step="1" aria-label="Seats per histogram bin">
       <label for="countrySeatAxisMax">X-axis maximum</label>
@@ -288,12 +289,14 @@
     "C-FV":   "#FFA500",
     "Podemos": "#7030A0",
     "SALF":     "#833C0C",
-    "ERC":     "#FFB232",
-    "Junts":   "#00C3B2",
-    "PNV":     "#1B7F3B",
-    "Bildu":   "#B5CF18",
+    "ERC":     "#FFC91B",
+    "Junts":   "#00C7AE",
+    "BNG":   "#ADCFEF",
+    "PNV":     "#4AAE4A",
+    "EHB":   "#B5CF18",
+    "Cca":   "#FFD700",
     "AA":   "#008500",
-    "Others":  "#9aa0a6"
+    "Others":  "#999999"
   };
   const DEFAULT_COLOUR = "#1f6fb2";   // used for any party not listed above
   const BELOW_ALPHA = 0.35;           // opacity of bars below the effective threshold
@@ -813,13 +816,136 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       return;
     }
     const multi = partyIndices.length > 1;
+    const combineSelectedParties = $("countrySeatCombine").checked;
     const showBellCurve = $("countrySeatBellCurve").checked;
     const curveSmoothness = Number($("countrySeatCurveSmoothness").value) / 100;
 
     const barDatasets = [], curveDatasets = [], quartileItems = [];
     let peakProbability = 0;
 
-    partyIndices.forEach(partyIndex => {
+    if (combineSelectedParties) {
+      const combinedRuns = countrySeatMC.runs.map(run => {
+        const seats = partyIndices.map(partyIndex => run[partyIndex]);
+        return { seats, total: seats.reduce((sum, value) => sum + value, 0) };
+      });
+      const maxCombinedSeats = combinedRuns.reduce((max, run) => Math.max(max, run.total), 0);
+      const combinedCounts = new Array(maxCombinedSeats + 1).fill(0);
+      const bins = Array.from(
+        { length: Math.floor(maxCombinedSeats / binSize) + 1 },
+        (_, index) => ({
+          start: index * binSize,
+          count: 0,
+          contributionShares: new Array(partyIndices.length).fill(0)
+        })
+      );
+      combinedRuns.forEach(run => {
+        combinedCounts[run.total]++;
+        const bin = bins[Math.floor(run.total / binSize)];
+        bin.count++;
+        if (run.total > 0) {
+          run.seats.forEach((seats, index) => { bin.contributionShares[index] += seats / run.total; });
+        }
+      });
+
+      const partyData = partyIndices.map(() => []);
+      bins.forEach(bin => {
+        const chance = bin.count / runCount * 100;
+        if (chance < 0.1) return;
+        const end = Math.min(bin.start + binSize - 1, maxCombinedSeats);
+        const x = (bin.start + end) / 2;
+        partyIndices.forEach((partyIndex, index) => {
+          const contributionShare = bin.count
+            ? bin.contributionShares[index] / bin.count
+            : 0;
+          partyData[index].push({
+            x,
+            y: chance * contributionShare,
+            seatStart: bin.start,
+            seatEnd: end,
+            runCount: bin.count,
+            combinedChance: chance,
+            contributionShare
+          });
+        });
+        peakProbability = Math.max(peakProbability, chance);
+      });
+
+      partyIndices.forEach((partyIndex, index) => {
+        const party = countrySeatMC.parties[partyIndex];
+        const colour = partyColour(party);
+        barDatasets.push({
+          label: party,
+          data: partyData[index],
+          backgroundColor: showBellCurve ? fade(colour, 0.3) : colour,
+          borderColor: "#fff",
+          borderWidth: 1,
+          stack: "combined-parties",
+          grouped: true,
+          categoryPercentage: 1,
+          barPercentage: 1,
+          order: 1
+        });
+      });
+
+      if (showBellCurve) {
+        const sortedTotals = combinedRuns.map(run => run.total).sort((a, b) => a - b);
+        const quantile = probability => {
+          const index = (sortedTotals.length - 1) * probability;
+          const lower = Math.floor(index);
+          const fraction = index - lower;
+          return sortedTotals[lower] + (sortedTotals[Math.ceil(index)] - sortedTotals[lower]) * fraction;
+        };
+        const meanSeats = sortedTotals.reduce((sum, seats) => sum + seats, 0) / runCount;
+        const variance = sortedTotals.reduce((sum, seats) => sum + (seats - meanSeats) ** 2, 0) / runCount;
+        const standardDeviation = Math.sqrt(variance);
+        const minBandwidth = Math.max(1, binSize / 2);
+        const maxBandwidth = Math.max(minBandwidth, Math.min(40, Math.max(binSize, standardDeviation * 1.5)));
+        const bandwidth = minBandwidth + (maxBandwidth - minBandwidth) * curveSmoothness;
+        const kernelScale = 1 / (bandwidth * Math.sqrt(2 * Math.PI) * runCount);
+        const curve = Array.from({ length: maxCombinedSeats + 1 }, (_, seat) => {
+          let density = 0;
+          for (let outcome = 0; outcome <= maxCombinedSeats; outcome++) {
+            if (!combinedCounts[outcome]) continue;
+            const distance = (seat - outcome) / bandwidth;
+            density += combinedCounts[outcome] * Math.exp(-0.5 * distance * distance);
+          }
+          return density * kernelScale * binSize * 100;
+        });
+        const peak = Math.max(...curve);
+        const tailThreshold = peak * 0.005;
+        let firstVisibleSeat = curve.findIndex(value => value >= tailThreshold);
+        let lastVisibleSeat = curve.length - 1 - [...curve].reverse().findIndex(value => value >= tailThreshold);
+        firstVisibleSeat = Math.max(0, firstVisibleSeat);
+        lastVisibleSeat = Math.max(firstVisibleSeat, lastVisibleSeat);
+        const curveStart = Math.max(0, firstVisibleSeat - 5);
+        const curveEnd = Math.min(maxCombinedSeats, lastVisibleSeat + 5);
+        const curveData = Array.from({ length: curveEnd - curveStart + 1 }, (_, index) => {
+          const seat = curveStart + index;
+          return { x: seat, y: seat < firstVisibleSeat || seat > lastVisibleSeat ? 0 : curve[seat] };
+        });
+        curveDatasets.push({
+          type: "line",
+          label: "Combined parties empirical distribution",
+          data: curveData,
+          borderColor: "#333",
+          backgroundColor: "transparent",
+          borderWidth: 2.5,
+          pointRadius: 0,
+          pointHitRadius: 6,
+          tension: 0.15,
+          spanGaps: false,
+          order: 0
+        });
+        quartileItems.push({
+          q1: quantile(0.25),
+          q3: quantile(0.75),
+          highlightColor: "rgba(80, 80, 80, 0.1)",
+          textColor: "#333",
+          rangeLabel: `${Math.round(quantile(0.25))}–${Math.round(quantile(0.75))}`
+        });
+        peakProbability = Math.max(peakProbability, ...curveData.map(point => point.y));
+      }
+    } else partyIndices.forEach(partyIndex => {
       const party = countrySeatMC.parties[partyIndex];
       const colour = partyColour(party);
 
@@ -931,7 +1057,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
             grid: { drawOnChartArea: false, drawTicks: true }
           },
           y: {
-            type: "linear", beginAtZero: true, max: yMax,
+            type: "linear", beginAtZero: true, max: yMax, stacked: combineSelectedParties,
             title: { display: true, text: "Chance across runs (%)" },
             ticks: { callback: value => value + "%" },
             grid: { drawOnChartArea: false, drawTicks: true }
@@ -953,6 +1079,8 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
               },
               label: context => context.dataset.type === "line"
                 ? `${context.dataset.label}: ${context.parsed.y.toFixed(1)}% (smoothed)`
+                : combineSelectedParties
+                  ? `${context.dataset.label}: ${(context.raw.contributionShare * 100).toFixed(1)}% of seats in this range; combined outcome: ${context.raw.combinedChance.toFixed(1)}% of runs (${context.raw.runCount.toLocaleString()} runs)`
                 : `${context.dataset.label}: ${context.parsed.y.toFixed(1)}% of runs (${context.raw.runCount.toLocaleString()} runs)`
             }
           }
@@ -1410,6 +1538,7 @@ if (hasPrev && PREV_TICK) {
   });
   $("countrySeatInput").addEventListener("paste", () => setTimeout(loadCountrySeatMC, 0));
   $("countrySeatParty").addEventListener("change", drawCountrySeatMC);
+  $("countrySeatCombine").addEventListener("change", drawCountrySeatMC);
     document.addEventListener("click", e => {
     const m = $("countrySeatPartyMenu");
     if (m.open && !m.contains(e.target)) m.open = false;
