@@ -678,7 +678,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = "#888";
-      ctx.font = "italic 12px system-ui, sans-serif";
+      ctx.font = "12px system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillText("majority", markerX + 5, chartArea.top + 1);
@@ -686,7 +686,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     }
   },   {
     id: "countrySeatQuartiles",
-    beforeDatasetsDraw(chartInstance, _args, options) {
+    beforeDraw(chartInstance, _args, options) {
       if (!options.display || !options.items) return;
       const { ctx, chartArea, scales: { x } } = chartInstance;
       ctx.save();
@@ -1100,7 +1100,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           },
           y: {
             type: "linear", beginAtZero: true, max: yMax, stacked: combineSelectedParties,
-            title: { display: true, text: "Chance across runs (%)" },
+            title: { display: true, text: "Probability (%)" },
             ticks: { callback: value => value + "%" },
             grid: { drawOnChartArea: false, drawTicks: true }
           }
