@@ -30,11 +30,15 @@
   .chartbox { position:relative; height:650px; }
   .chartbox.empty { height:120px; }
   .chartbox.short { height:420px; }
-  .chartbox.seat-distribution { height:460px; }
+  .chartbox.seat-distribution { height:560px; }
+  #countrySeatResults { background:var(--bg); }
   .key { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--muted); margin-bottom:8px; }
   .key .threshold-keys { display:flex; flex-basis:100%; flex-wrap:wrap; gap:16px; }
   .chart-topline { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:8px; }
   .chart-topline .key { flex:1; margin:0; }
+  .country-seat-legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-right:auto; font-size:13px; color:var(--muted); }
+  .country-seat-legend-item { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+  .country-seat-legend-swatch { display:inline-block; width:14px; height:12px; border:1px solid rgba(0,0,0,0.12); border-radius:2px; }
   .chart-heading { display:flex; align-items:center; gap:12px; flex:none; }
   .chart-heading-copy { text-align:right; }
   .chart-heading h3 { font-size:20px; line-height:24px; margin:0 0 4px; }
@@ -245,17 +249,13 @@
       <summary>Accepted format</summary>
       <p>The first row must contain run numbers (for example, <code>1</code>, <code>2</code>, or <code>Run 1</code>, <code>Run 2</code>). Put one party per row in the first column and that party's seat total for each run in the remaining columns. Seat totals must be whole numbers from 0 to 350. Incomplete or invalid runs are skipped.</p>
     </details>
-  </div>
-
-  <div class="card" id="countrySeatResults" style="display:none">
-    <h2>Nationwide seat distribution</h2>
-    <p class="hint">Compare selected parties' seat distributions, or combine them across runs. Combined bars are segmented by each party's share of seats in that range. The dashed line marks the 175-seat majority.</p>
+    <h3 style="font-size:14px;margin:14px 0 0">Chart settings</h3>
     <div class="row">
       <span style="font-size:13px;color:var(--muted)">Parties</span>
-<details id="countrySeatPartyMenu" class="party-menu">
-  <summary id="countrySeatPartySummary">Select parties</summary>
-  <div id="countrySeatParty" class="party-menu-list" role="group" aria-label="Select parties"></div>
-</details>
+      <details id="countrySeatPartyMenu" class="party-menu">
+        <summary id="countrySeatPartySummary">Select parties</summary>
+        <div id="countrySeatParty" class="party-menu-list" role="group" aria-label="Select parties"></div>
+      </details>
       <label for="countrySeatCombine"><input type="checkbox" id="countrySeatCombine"> Combine selected parties</label>
       <label for="countrySeatBinSize">Seats per bin</label>
       <input type="number" id="countrySeatBinSize" value="10" min="1" max="100" step="1" aria-label="Seats per histogram bin">
@@ -272,8 +272,12 @@
         <output id="countrySeatCurveSmoothnessValue" for="countrySeatCurveSmoothness">60%</output>
       </label>
     </div>
+  </div>
+
+  <div class="card" id="countrySeatResults" style="display:none">
+    <h2>Nationwide seat distribution</h2>
     <div class="chart-topline">
-      <div></div>
+      <div id="countrySeatLegend" class="country-seat-legend" aria-label="Party color legend"></div>
       <div class="chart-heading">
         <div class="chart-heading-copy">
           <h3>Nowcast EU | Congress of Deputies Projection</h3>
@@ -854,6 +858,12 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
 
     const barDatasets = [], curveDatasets = [], quartileItems = [];
     let peakProbability = 0;
+    $("countrySeatLegend").innerHTML = multi
+      ? partyIndices.map(index => {
+        const party = countrySeatMC.parties[index];
+        return `<span class="country-seat-legend-item"><span class="country-seat-legend-swatch" style="background:${partyColour(party)}"></span>${esc(party)}</span>`;
+      }).join("")
+      : "";
 
     if (combineSelectedParties) {
       const combinedRuns = countrySeatMC.runs.map(run => {
@@ -1097,8 +1107,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         },
         plugins: {
           legend: {
-            display: multi,
-            labels: { filter: (item, data) => data.datasets[item.datasetIndex].type !== "line" }
+            display: false
           },
           countrySeatQuartiles: { display: showBellCurve, items: quartileItems },
           tooltip: {
@@ -1126,6 +1135,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           const x = c.scales.x;
           const w = Math.abs(x.getPixelForValue(binSize) - x.getPixelForValue(0));
           c.data.datasets.forEach(ds => { if (ds.type !== "line") ds.barThickness = w; });
+          $("countrySeatLegend").style.marginLeft = `${c.chartArea.left}px`;
         }
       }]
     });
