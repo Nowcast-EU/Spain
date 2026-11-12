@@ -918,7 +918,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         barDatasets.push({
           label: party,
           data: partyData[index],
-          backgroundColor: showBellCurve ? fade(colour, 0.3) : colour,
+          backgroundColor: colour,
           borderColor: "#fff",
           borderWidth: 1,
           stack: "combined-parties",
@@ -1068,7 +1068,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         label: party,
         data,
         // translucent when several parties overlap so the one behind stays visible
-        backgroundColor: showBellCurve ? fade(colour, 0.3) : fade(colour, multi ? 0.6 : 1),
+        backgroundColor: fade(colour, multi ? 0.6 : 1),
         borderColor: "#fff",
         borderWidth: 1,
         grouped: false,          // every dataset sits on the same x position, so bars overlap instead of sitting side by side
