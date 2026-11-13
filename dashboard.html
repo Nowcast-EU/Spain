@@ -55,7 +55,6 @@
   .country-seat-tooltip.is-dragging { cursor:grabbing; }
   .country-seat-tooltip-title { width:max-content; max-width:100%; padding-bottom:7px; border-bottom:1px solid var(--line); font-size:16px; font-weight:700; overflow-wrap:anywhere; }
   .country-seat-tooltip-row { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:6px 0; }
-  .country-seat-tooltip-row + .country-seat-tooltip-row { border-top:1px solid var(--line); }
   .country-seat-tooltip-party { display:flex; align-items:center; gap:7px; min-width:0; }
   .country-seat-tooltip-name { min-width:0; overflow-wrap:anywhere; }
   .country-seat-tooltip-swatch { width:11px; height:11px; flex:none; border:1px solid rgba(0,0,0,0.12); border-radius:2px; }
@@ -930,7 +929,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         party.append(swatch, name);
         const value = document.createElement("span");
         value.className = "country-seat-tooltip-value";
-        value.textContent = item.raw.averageSeats.toFixed(1);
+        value.textContent = `~${item.raw.averageSeats.toFixed(1)}`;
         row.append(party, value);
         tooltipEl.appendChild(row);
       });
@@ -1180,6 +1179,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           backgroundColor: "transparent",
           borderWidth: 2.5,
           pointRadius: 0,
+          pointHoverRadius: 0,
           pointHitRadius: 6,
           tension: 0.15,
           spanGaps: false,
@@ -1255,6 +1255,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           backgroundColor: "transparent",
           borderWidth: 2.5,
           pointRadius: 0,
+          pointHoverRadius: 0,
           pointHitRadius: 6,
           tension: 0.15,
           spanGaps: false,
