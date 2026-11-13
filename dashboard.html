@@ -281,7 +281,7 @@
       <div class="chart-heading">
         <div class="chart-heading-copy">
           <h3>Nowcast EU | Congress of Deputies Projection</h3>
-          <p>Based on Spanish polling averages • 12 November, 2026</p>
+          <p id="countrySeatSubtitle"></p>
         </div>
         <img class="chart-heading-logo" src="https://raw.githubusercontent.com/Nowcast-EU/Spain/main/ES_logo.png" alt="Nowcast EU">
       </div>
@@ -421,6 +421,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
   const pollingSubtitle = `Based on Spanish polling averages • ${dateParts.day} ${dateParts.month}, ${dateParts.year}`;
   $("mcSubtitle").textContent = pollingSubtitle;
   $("projectionSubtitle").textContent = pollingSubtitle;
+  $("countrySeatSubtitle").textContent = pollingSubtitle;
   const state = { rows: [], parties: [] };   // rows: {name, seats, shares:{party:value}}
   const prev = { rows: [], parties: [] };    // previous election results, same shape as state
   let chart = null;
@@ -893,7 +894,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       bins.forEach(bin => {
         const chance = bin.count / runCount * 100;
         if (chance < 0.1) return;
-        const end = bin.start + binSize - 1;
+        const end = bin.start + binSize;
         const x = (bin.start + end) / 2;
         partyIndices.forEach((partyIndex, index) => {
           const contributionShare = bin.count
@@ -995,8 +996,8 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       countrySeatMC.runs.forEach(run => seatCounts[run[partyIndex]]++);
       const data = [];
       for (let start = 0; start <= COUNTRY_SEAT_MAX; start += binSize) {
-        const end = Math.min(start + binSize - 1, COUNTRY_SEAT_MAX);
-        const count = seatCounts.slice(start, end + 1).reduce((sum, value) => sum + value, 0);
+        const end = Math.min(start + binSize, COUNTRY_SEAT_MAX + 1);
+        const count = seatCounts.slice(start, end).reduce((sum, value) => sum + value, 0);
         const chance = count / runCount * 100;
         if (chance < 0.1) continue;
         data.push({ x: (start + end) / 2, y: chance, seatStart: start, seatEnd: end, runCount: count });
