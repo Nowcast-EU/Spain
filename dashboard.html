@@ -46,8 +46,13 @@
     font-size:14px;
     line-height:1.35;
     pointer-events:none;
+    touch-action:none;
+    user-select:none;
+    cursor:grab;
     opacity:0;
   }
+  .country-seat-tooltip.is-visible { pointer-events:auto; opacity:1; }
+  .country-seat-tooltip.is-dragging { cursor:grabbing; }
   .country-seat-tooltip-title { width:max-content; max-width:100%; padding-bottom:7px; border-bottom:1px solid var(--line); font-size:16px; font-weight:700; overflow-wrap:anywhere; }
   .country-seat-tooltip-row { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:6px 0; }
   .country-seat-tooltip-row + .country-seat-tooltip-row { border-top:1px solid var(--line); }
@@ -819,6 +824,24 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       : names.length <= 3 ? names.join(", ") : `${names.length} parties selected`;
   }
 
+  function updateCountrySeatTooltipConnector(chartBox, connector, tooltipEl, anchor) {
+    if (!anchor) {
+      connector.firstElementChild.setAttribute("d", "");
+      return;
+    }
+    const left = parseFloat(tooltipEl.style.left) || 0;
+    const top = parseFloat(tooltipEl.style.top) || 0;
+    const width = tooltipEl.offsetWidth;
+    const height = tooltipEl.offsetHeight;
+    const side = left + width / 2 < anchor.x ? "right" : "left";
+    const edgeX = side === "right" ? left + width : left;
+    const edgeY = top + height / 2;
+    const directionToAnchor = edgeX < anchor.x ? 1 : -1;
+    const bendX = anchor.x - directionToAnchor * Math.abs(anchor.y - edgeY);
+    connector.firstElementChild.setAttribute("d", `M ${anchor.x} ${anchor.y} L ${bendX} ${edgeY} L ${edgeX} ${edgeY}`);
+    connector.setAttribute("viewBox", `0 0 ${chartBox.clientWidth} ${chartBox.clientHeight}`);
+  }
+
   function renderCountrySeatTooltip({ chart, tooltip }) {
     const chartBox = chart.canvas.parentNode;
     let tooltipEl = chartBox.querySelector(".country-seat-tooltip");
@@ -836,8 +859,51 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       connector.appendChild(path);
       chartBox.appendChild(connector);
     }
+    if (!tooltipEl.dataset.dragHandlersAttached) {
+      tooltipEl.dataset.dragHandlersAttached = "true";
+      tooltipEl.addEventListener("pointerdown", event => {
+        if (event.button !== 0) return;
+        chart.$countrySeatTooltipPinned = true;
+        tooltipEl.classList.add("is-visible", "is-pinned", "is-dragging");
+        chart.$countrySeatTooltipDrag = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          startLeft: parseFloat(tooltipEl.style.left) || 0,
+          startTop: parseFloat(tooltipEl.style.top) || 0
+        };
+        tooltipEl.setPointerCapture(event.pointerId);
+        event.preventDefault();
+      });
+      tooltipEl.addEventListener("pointermove", event => {
+        const drag = chart.$countrySeatTooltipDrag;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        const margin = 8;
+        const left = Math.max(margin, Math.min(
+          drag.startLeft + event.clientX - drag.startX,
+          chartBox.clientWidth - tooltipEl.offsetWidth - margin
+        ));
+        const top = Math.max(margin, Math.min(
+          drag.startTop + event.clientY - drag.startY,
+          chartBox.clientHeight - tooltipEl.offsetHeight - margin
+        ));
+        tooltipEl.style.left = `${left}px`;
+        tooltipEl.style.top = `${top}px`;
+        updateCountrySeatTooltipConnector(chartBox, connector, tooltipEl, chart.$countrySeatTooltipAnchor);
+      });
+      const stopDragging = event => {
+        const drag = chart.$countrySeatTooltipDrag;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        chart.$countrySeatTooltipDrag = null;
+        tooltipEl.classList.remove("is-dragging");
+      };
+      tooltipEl.addEventListener("pointerup", stopDragging);
+      tooltipEl.addEventListener("pointercancel", stopDragging);
+    }
+    if (chart.$countrySeatTooltipPinned) return;
     if (tooltip.opacity === 0) {
       tooltipEl.style.opacity = "0";
+      tooltipEl.classList.remove("is-visible");
       connector.firstElementChild.setAttribute("d", "");
       return;
     }
@@ -872,6 +938,8 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       const lineItem = tooltip.dataPoints.find(item => item.dataset.type === "line");
       if (!lineItem) {
         tooltipEl.style.opacity = "0";
+        tooltipEl.classList.remove("is-visible");
+        connector.firstElementChild.setAttribute("d", "");
         return;
       }
       title.textContent = `${lineItem.parsed.x} seats`;
@@ -920,17 +988,12 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     const left = Math.max(margin, Math.min(position.left, chartBox.clientWidth - width - margin));
     const top = Math.max(margin, Math.min(position.top, chartBox.clientHeight - height - margin));
     tooltipEl.style.opacity = "1";
+    tooltipEl.classList.add("is-visible");
     tooltipEl.style.left = `${left}px`;
     tooltipEl.style.top = `${top}px`;
 
-    const side = left + width / 2 < anchorX ? "right" : "left";
-    const edgeX = side === "right" ? left + width : left;
-    const edgeY = top + height / 2;
-    const directionToAnchor = edgeX < anchorX ? 1 : -1;
-    const bendX = anchorX - directionToAnchor * Math.abs(anchorY - edgeY);
-    const path = connector.firstElementChild;
-    path.setAttribute("d", `M ${anchorX} ${anchorY} L ${bendX} ${edgeY} L ${edgeX} ${edgeY}`);
-    connector.setAttribute("viewBox", `0 0 ${chartBox.clientWidth} ${chartBox.clientHeight}`);
+    chart.$countrySeatTooltipAnchor = { x: anchorX, y: anchorY };
+    updateCountrySeatTooltipConnector(chartBox, connector, tooltipEl, chart.$countrySeatTooltipAnchor);
   }
 
   function loadCountrySeatMC() {
@@ -1224,8 +1287,11 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
 
     const yMax = Math.floor((peakProbability + 10) / 10) * 10;
 
-    const previousTooltip = $("countrySeatChart").parentNode.querySelector(".country-seat-tooltip");
+    const chartBox = $("countrySeatChart").parentNode;
+    const previousTooltip = chartBox.querySelector(".country-seat-tooltip");
+    const previousConnector = chartBox.querySelector(".country-seat-tooltip-connector");
     if (previousTooltip) previousTooltip.remove();
+    if (previousConnector) previousConnector.remove();
     if (countrySeatChart) countrySeatChart.destroy();
     $("countrySeatResults").style.display = "";
     countrySeatChart = new Chart($("countrySeatChart"), {
@@ -1237,6 +1303,20 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         animation: { duration: 250 },
         devicePixelRatio: chartDpr(),
         interaction: { mode: "x", intersect: false },
+        onClick: (_event, _activeElements, chartInstance) => {
+          const tooltipEl = chartInstance.canvas.parentNode.querySelector(".country-seat-tooltip");
+          if (!tooltipEl) return;
+          if (chartInstance.$countrySeatTooltipPinned) {
+            chartInstance.$countrySeatTooltipPinned = false;
+            tooltipEl.classList.remove("is-pinned", "is-visible");
+            tooltipEl.style.opacity = "0";
+            const connector = chartInstance.canvas.parentNode.querySelector(".country-seat-tooltip-connector");
+            if (connector) connector.firstElementChild.setAttribute("d", "");
+          } else if (chartInstance.tooltip.opacity > 0 && tooltipEl.classList.contains("is-visible")) {
+            chartInstance.$countrySeatTooltipPinned = true;
+            tooltipEl.classList.add("is-pinned");
+          }
+        },
         scales: {
           x: {
             type: "linear", min: axisMin, max: axisMax, offset: false,
