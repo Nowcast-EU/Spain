@@ -293,6 +293,8 @@
       <input type="number" id="countrySeatAxisMin" value="0" min="0" step="1" aria-label="Minimum projected seats on horizontal axis">
       <label for="countrySeatAxisMax">X-axis maximum</label>
       <input type="number" id="countrySeatAxisMax" value="400" min="1" step="1" aria-label="Maximum projected seats on horizontal axis">
+      <label for="countrySeatYAxisMax">Y-axis maximum (%)</label>
+      <input type="number" id="countrySeatYAxisMax" min="0.1" step="any" placeholder="Auto" aria-label="Maximum probability on vertical axis">
       <label for="countrySeatTickSpacing">Seats between X-axis ticks</label>
       <input type="number" id="countrySeatTickSpacing" value="50" min="1" step="1" aria-label="Seats between horizontal axis ticks">
       <label for="countrySeatBellCurve"><input type="checkbox" id="countrySeatBellCurve"> Show bell curve and quartiles</label>
@@ -736,25 +738,28 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     },
     afterDatasetsDraw(chartInstance, _args, options) {
       if (!options.display || !options.items) return;
-      const { ctx, chartArea, scales: { x } } = chartInstance;
+      const { ctx, chartArea, scales: { x, y } } = chartInstance;
       ctx.save();
       ctx.beginPath();
       ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
       ctx.clip();
-      ctx.font = "600 14px system-ui, sans-serif";
+      ctx.font = "600 20px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.textBaseline = "top";
+      ctx.textBaseline = "middle";
       options.items.forEach((item, k) => {
         if (item.q3 <= x.min || item.q1 >= x.max) return;
         const left = Math.max(chartArea.left, x.getPixelForValue(item.q1));
         const right = Math.min(chartArea.right, x.getPixelForValue(item.q3));
         if (right <= left) return;
+        const labelY = item.curvePeak < y.max
+          ? y.getPixelForValue(item.curvePeak + (y.max - item.curvePeak) * (k + 1) / (options.items.length + 1))
+          : chartArea.top + 12 + k * 22;
         ctx.fillStyle = item.textColor;
         ctx.lineJoin = "round";
         ctx.lineWidth = 3;
         ctx.strokeStyle = "#f8faf9";
-        ctx.strokeText(item.rangeLabel, (left + right) / 2, chartArea.top + 10 + k * 18);
-        ctx.fillText(item.rangeLabel, (left + right) / 2, chartArea.top + 10 + k * 18);
+        ctx.strokeText(item.rangeLabel, (left + right) / 2, labelY);
+        ctx.fillText(item.rangeLabel, (left + right) / 2, labelY);
       });
       ctx.restore();
     }
@@ -1048,6 +1053,12 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       setCountrySeatMsg("The X-axis tick spacing must be a positive whole number of seats.", true);
       return;
     }
+    const yAxisMaxInput = $("countrySeatYAxisMax").value.trim();
+    const customYMax = yAxisMaxInput === "" ? null : Number(yAxisMaxInput);
+    if (customYMax !== null && (!Number.isFinite(customYMax) || customYMax <= 0)) {
+      setCountrySeatMsg("The Y-axis maximum must be a positive number.", true);
+      return;
+    }
     const partyIndices = selectedCountryParties();
     updateCountryPartySummary();
     if (!partyIndices.length) {
@@ -1188,6 +1199,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         quartileItems.push({
           q1: quantile(0.25),
           q3: quantile(0.75),
+          curvePeak: peak,
           highlightColor: "rgba(80, 80, 80, 0.1)",
           textColor: "#333",
           rangeLabel: `${Math.round(quantile(0.25))}–${Math.round(quantile(0.75))}`
@@ -1218,6 +1230,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       };
 
       let curveData = [];
+      let curvePeak = 0;
       if (showBellCurve) {
         const meanSeats = sortedSeats.reduce((sum, seats) => sum + seats, 0) / runCount;
         const variance = sortedSeats.reduce((sum, seats) => sum + (seats - meanSeats) ** 2, 0) / runCount;
@@ -1236,6 +1249,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           return density * kernelScale * binSize * 100;
         });
         const peak = Math.max(...curve);
+        curvePeak = peak;
         const tailThreshold = peak * 0.005;
         let firstVisibleSeat = curve.findIndex(value => value >= tailThreshold);
         let lastVisibleSeat = curve.length - 1 - [...curve].reverse().findIndex(value => value >= tailThreshold);
@@ -1264,6 +1278,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         quartileItems.push({
           q1: quantile(0.25),
           q3: quantile(0.75),
+          curvePeak,
           highlightColor: fade(colour, multi ? 0.08 : 0.12),
           textColor: colour,
           rangeLabel: `${multi ? party + " " : ""}${Math.round(quantile(0.25))}–${Math.round(quantile(0.75))}`
@@ -1286,7 +1301,8 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       });
     });
 
-    const yMax = Math.floor((peakProbability + 10) / 10) * 10;
+    const automaticYMax = Math.floor((peakProbability + 10) / 10) * 10;
+    const yMax = customYMax === null ? automaticYMax : customYMax;
 
     const chartBox = $("countrySeatChart").parentNode;
     const previousTooltip = chartBox.querySelector(".country-seat-tooltip");
@@ -1823,6 +1839,7 @@ if (hasPrev && PREV_TICK) {
   $("countrySeatBinSize").addEventListener("change", drawCountrySeatMC);
   $("countrySeatAxisMin").addEventListener("change", drawCountrySeatMC);
   $("countrySeatAxisMax").addEventListener("change", drawCountrySeatMC);
+  $("countrySeatYAxisMax").addEventListener("change", drawCountrySeatMC);
   $("countrySeatTickSpacing").addEventListener("change", drawCountrySeatMC);
   $("countrySeatBellCurve").addEventListener("change", () => {
     $("countrySeatCurveSmoothnessControl").hidden = !$("countrySeatBellCurve").checked;
