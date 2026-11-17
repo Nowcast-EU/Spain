@@ -763,7 +763,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       ctx.font = "600 20px system-ui, sans-serif";
       const placedLabels = [];
       const labelGap = 8;
-      const labelStep = 20 + labelGap;
+      const labelStep = (options.items.some(item => item.partyLabel) ? 48 : 20) + labelGap;
       options.items.forEach((item, k) => {
         if (item.q3 <= x.min || item.q1 >= x.max) return;
         const left = Math.max(chartArea.left, x.getPixelForValue(item.q1));
@@ -775,7 +775,14 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
             : chartArea.top + 12 + k * 22
           : y.getPixelForValue(options.labelYValue);
         const labelX = (left + right) / 2;
-        const labelWidth = ctx.measureText(item.rangeLabel).width;
+        const rangeWidth = ctx.measureText(item.rangeLabel).width;
+        let partyWidth = 0;
+        if (item.partyLabel) {
+          ctx.font = "600 16px system-ui, sans-serif";
+          partyWidth = ctx.measureText(item.partyLabel).width;
+        }
+        ctx.font = "600 20px system-ui, sans-serif";
+        const labelWidth = Math.max(rangeWidth, partyWidth);
         if (options.items.length > 1) {
           const minY = chartArea.top + labelStep / 2;
           const maxY = chartArea.bottom - labelStep / 2;
@@ -809,8 +816,17 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         ctx.lineJoin = "round";
         ctx.lineWidth = 3;
         ctx.strokeStyle = "#f8faf9";
-        ctx.strokeText(item.rangeLabel, labelX, labelY);
-        ctx.fillText(item.rangeLabel, labelX, labelY);
+        if (item.partyLabel) {
+          ctx.font = "600 16px system-ui, sans-serif";
+          ctx.strokeText(item.partyLabel, labelX, labelY - 12);
+          ctx.fillText(item.partyLabel, labelX, labelY - 12);
+          ctx.font = "600 20px system-ui, sans-serif";
+          ctx.strokeText(item.rangeLabel, labelX, labelY + 12);
+          ctx.fillText(item.rangeLabel, labelX, labelY + 12);
+        } else {
+          ctx.strokeText(item.rangeLabel, labelX, labelY);
+          ctx.fillText(item.rangeLabel, labelX, labelY);
+        }
       });
       ctx.restore();
     }
@@ -1344,7 +1360,8 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
           curvePeak,
           highlightColor: fade(colour, multi ? 0.08 : 0.12),
           textColor: colour,
-          rangeLabel: `${multi ? party + " " : ""}${Math.round(quantile(0.25))}–${Math.round(quantile(0.75))}`
+          partyLabel: multi ? party : null,
+          rangeLabel: `${Math.round(quantile(0.25))}–${Math.round(quantile(0.75))}`
         });
       }
 
