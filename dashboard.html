@@ -864,6 +864,10 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     connector.setAttribute("viewBox", `0 0 ${chartBox.clientWidth} ${chartBox.clientHeight}`);
   }
 
+  const countrySeatRangeLabel = (start, end) => start === end
+    ? `${start} seat${start === 1 ? "" : "s"}`
+    : `${start}–${end} seats`;
+
   function renderCountrySeatTooltip({ chart, tooltip }) {
     const chartBox = chart.canvas.parentNode;
     let tooltipEl = chartBox.querySelector(".country-seat-tooltip");
@@ -936,7 +940,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
     title.className = "country-seat-tooltip-title";
     if (barItems.length) {
       const bin = barItems[0].raw;
-      title.textContent = `${bin.seatStart}–${bin.seatEnd} seats • ${bin.combinedChance.toFixed(1)}%`;
+      title.textContent = `${countrySeatRangeLabel(bin.seatStart, bin.seatEnd)} • ${bin.combinedChance.toFixed(1)}%`;
       tooltipEl.appendChild(title);
       barItems.forEach(item => {
         const row = document.createElement("div");
@@ -1134,8 +1138,8 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       bins.forEach(bin => {
         const chance = bin.count / runCount * 100;
         if (chance < 0.1) return;
-        const end = bin.start + binSize;
-        const x = (bin.start + end) / 2;
+        const lastSeat = bin.start + binSize - 1;
+        const x = (bin.start + lastSeat) / 2;
         partyIndices.forEach((partyIndex, index) => {
           const contributionShare = bin.count
             ? bin.contributionShares[index] / bin.count
@@ -1144,7 +1148,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
             x,
             y: chance * contributionShare,
             seatStart: bin.start,
-            seatEnd: end,
+            seatEnd: lastSeat,
             runCount: bin.count,
             combinedChance: chance,
             contributionShare,
@@ -1240,10 +1244,11 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       const data = [];
       for (let start = 0; start <= COUNTRY_SEAT_MAX; start += binSize) {
         const end = Math.min(start + binSize, COUNTRY_SEAT_MAX + 1);
+        const lastSeat = end - 1;
         const count = seatCounts.slice(start, end).reduce((sum, value) => sum + value, 0);
         const chance = count / runCount * 100;
         if (chance < 0.1) continue;
-        data.push({ x: (start + end) / 2, y: chance, seatStart: start, seatEnd: end, runCount: count });
+        data.push({ x: (start + lastSeat) / 2, y: chance, seatStart: start, seatEnd: lastSeat, runCount: count });
       }
 
       const sortedSeats = countrySeatMC.runs.map(run => run[partyIndex]).sort((a, b) => a - b);
@@ -1365,9 +1370,14 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
         },
         scales: {
           x: {
-            type: "linear", min: axisMin, max: axisMax, offset: false,
+            type: "linear", min: axisMin - 0.5, max: axisMax + 0.5, offset: false,
             title: { display: true, text: "Projected seats" },
             ticks: { stepSize: tickSpacing, precision: 0, autoSkip: false },
+            afterBuildTicks: scale => {
+              const ticks = [];
+              for (let value = axisMin; value <= axisMax; value += tickSpacing) ticks.push({ value });
+              scale.ticks = ticks;
+            },
             grid: { drawOnChartArea: false, drawTicks: true }
           },
           y: {
@@ -1390,7 +1400,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
                 const barItem = items.find(i => i.raw && i.raw.seatStart !== undefined);
                 if (!barItem) return items[0].dataset.label;
                 const bin = barItem.raw;
-                return bin.seatStart === bin.seatEnd ? `${bin.seatStart} seats` : `${bin.seatStart}–${bin.seatEnd} seats`;
+                return countrySeatRangeLabel(bin.seatStart, bin.seatEnd);
               },
               label: context => context.dataset.type === "line"
                 ? `${context.dataset.label}: ${context.parsed.y.toFixed(1)}% (smoothed)`
