@@ -69,7 +69,7 @@
   .chart-topline .key { flex:1; margin:0; }
   .country-seat-legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-right:auto; font-size:13px; color:var(--muted); }
   .country-seat-legend-item { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
-  .country-seat-legend-swatch { display:inline-block; width:14px; height:12px; border:1px solid rgba(0,0,0,0.12); border-radius:2px; }
+  .country-seat-legend-swatch { display:inline-block; width:14px; height:12px; }
   .chart-heading { display:flex; align-items:center; gap:12px; flex:none; }
   .chart-heading-copy { text-align:right; }
   .chart-heading h3 { font-size:20px; line-height:24px; margin:0 0 4px; }
@@ -708,7 +708,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       const markerX = x.getPixelForValue(175);
       ctx.save();
       ctx.setLineDash([6, 5]);
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = "#888";
       ctx.beginPath();
       ctx.moveTo(markerX, chartArea.top);
@@ -716,7 +716,7 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = "#888";
-      ctx.font = "12px system-ui, sans-serif";
+      ctx.font = "13px system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillText("majority", markerX + 5, chartArea.top + 1);
