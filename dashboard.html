@@ -761,17 +761,50 @@ Zaragoza	7	30.8	36.1	15.3	13.5	0.0	0.0	0	0	0	0	0	0	0	4.3
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = "600 20px system-ui, sans-serif";
+      const placedLabels = [];
+      const labelGap = 8;
+      const labelStep = 20 + labelGap;
       options.items.forEach((item, k) => {
         if (item.q3 <= x.min || item.q1 >= x.max) return;
         const left = Math.max(chartArea.left, x.getPixelForValue(item.q1));
         const right = Math.min(chartArea.right, x.getPixelForValue(item.q3));
         if (right <= left) return;
-        const labelY = options.labelYValue === null
+        let labelY = options.labelYValue === null
           ? item.curvePeak < y.max
             ? y.getPixelForValue(item.curvePeak + (y.max - item.curvePeak) * (k + 1) / (options.items.length + 1))
             : chartArea.top + 12 + k * 22
           : y.getPixelForValue(options.labelYValue);
         const labelX = (left + right) / 2;
+        const labelWidth = ctx.measureText(item.rangeLabel).width;
+        if (options.items.length > 1) {
+          const minY = chartArea.top + labelStep / 2;
+          const maxY = chartArea.bottom - labelStep / 2;
+          labelY = Math.max(minY, Math.min(maxY, labelY));
+          const overlaps = candidateY => placedLabels.some(label =>
+            labelX - labelWidth / 2 < label.right + labelGap &&
+            labelX + labelWidth / 2 > label.left - labelGap &&
+            Math.abs(candidateY - label.y) < labelStep
+          );
+          if (overlaps(labelY)) {
+            for (let distance = 1; distance <= maxY - minY; distance++) {
+              const aboveY = labelY - distance;
+              if (aboveY >= minY && !overlaps(aboveY)) {
+                labelY = aboveY;
+                break;
+              }
+              const belowY = labelY + distance;
+              if (belowY <= maxY && !overlaps(belowY)) {
+                labelY = belowY;
+                break;
+              }
+            }
+          }
+          placedLabels.push({
+            left: labelX - labelWidth / 2,
+            right: labelX + labelWidth / 2,
+            y: labelY
+          });
+        }
         ctx.fillStyle = item.textColor;
         ctx.lineJoin = "round";
         ctx.lineWidth = 3;
